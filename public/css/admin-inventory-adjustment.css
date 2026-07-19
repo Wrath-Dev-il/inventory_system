@@ -1,0 +1,137 @@
+/* ── Panel ── */
+.inv-panel { position: relative; }
+
+/* ── Notifications ── */
+.inv-notice { padding: 1rem 1.5rem; border-radius: .5rem; font-size: .875rem; font-weight: 600; margin:0 0 1rem; display:none; }
+.inv-notice--success { display:block; background:#dcfce7; color:#166534; border:1px solid #86efac; }
+.inv-notice--error   { display:block; background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+.inv-notice--conflict{ display:block; background:#fff7ed; color:#9a3412; border:1px solid #fdba74; }
+.inv-notice--warning { display:block; background:#fefce8; color:#854d0e; border:1px solid #fde047; }
+
+/* ── Metric Cards (dashboard style) ── */
+.metric-card__icon--high { background:var(--admin-navy); color:var(--admin-yellow); }
+.metric-card__icon--low  { background:var(--admin-navy); color:var(--admin-yellow); }
+
+/* ── Toolbar / Tabs ── */
+.inv-toolbar { display:flex; flex-wrap:wrap; gap:.75rem; justify-content:space-between; align-items:center; margin-bottom:1.25rem; }
+.inv-tabs { display:flex; gap:.25rem; background:#f1f5f9; padding:.25rem; border-radius:.5rem; }
+.inv-tab {
+  padding:.5rem 1rem; font-size:.8125rem; font-weight:600; color:#475569;
+  border:none; border-radius:.375rem; background:transparent; cursor:pointer; transition:all .15s;
+}
+.inv-tab.is-active { background:#fff; color:#0f172a; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+
+/* ── Table Shell ── */
+.inv-table-shell { overflow-x:auto; background:#fff; border-radius:.75rem; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.inv-table { width:100%; border-collapse:collapse; font-size:.8125rem; }
+.inv-table thead th { background:#f8fafc; padding:.625rem .75rem; font-weight:600; color:#475569; text-align:left; white-space:nowrap; position:sticky; top:0; z-index:2; }
+.inv-table thead tr:first-child th { border-bottom:2px solid #e2e8f0; }
+.inv-table thead tr:last-child th { padding-top:0; padding-bottom:.75rem; vertical-align:top; }
+.inv-th-sort { cursor:pointer; user-select:none; }
+.inv-th-sort:hover { color:#0f172a; }
+.inv-sort-icon { margin-left:.375rem; font-size:.625rem; opacity:.4; }
+.inv-th-sort.is-asc .inv-sort-icon { opacity:1; color:#2563eb; }
+.inv-th-sort.is-desc .inv-sort-icon { opacity:1; color:#2563eb; transform:scaleY(-1); display:inline-block; }
+.inv-search-wrap { display:block; }
+.inv-search-wrap input { width:100%; padding:.375rem .5rem; font-size:.75rem; border:1px solid #e2e8f0; border-radius:.375rem; outline:none; background:#fafafa; transition:border-color .15s; }
+.inv-search-wrap input:focus { border-color:#3b82f6; background:#fff; }
+
+.inv-table td { padding:.5rem .75rem; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+.inv-table tbody tr:hover { background:#f8fafc; }
+.inv-table tbody tr.inv-row--edited { background:#bbf7d0; }
+.inv-table tbody tr.inv-row--edited td { background:inherit; }
+.inv-table tbody tr.inv-row--conflict { background:#fff7ed; }
+.inv-empty { text-align:center; padding:2rem !important; color:#94a3b8; }
+
+/* ── Editable Quantity Cells ── */
+.inv-qty-cell { cursor:pointer; font-weight:600; transition:color .15s; position:relative; }
+.inv-qty-cell:hover { color:#2563eb; }
+
+.inv-qty-input {
+  width:6rem; padding:.25rem .375rem; font-size:.8125rem; font-weight:600;
+  border:2px solid #3b82f6; border-radius:.375rem; outline:none;
+  background:#fff; text-align:right;
+  transition:border-color .15s, box-shadow .15s;
+  box-shadow:0 0 0 3px rgba(59,130,246,.15);
+}
+.inv-qty-input:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.25); }
+
+/* ── Stronger Green Edited State ── */
+.inv-qty-cell.is-edited {
+  background:#d1fae5;
+  border-radius:.25rem;
+  padding:2px 6px;
+  font-weight:700;
+  color:#065f46;
+  position:relative;
+}
+.inv-qty-cell.is-edited::after {
+  content:attr(data-edited-label);
+  position:absolute;
+  top:-.5rem;
+  right:-.25rem;
+  font-size:.625rem;
+  font-weight:700;
+  color:#047857;
+  background:#a7f3d0;
+  padding:0 .3125rem;
+  border-radius:.25rem;
+  line-height:1.25;
+  white-space:nowrap;
+  pointer-events:none;
+}
+.inv-row--edited .inv-qty-cell.is-edited {
+  background:#a7f3d0;
+}
+.inv-qty-cell.is-edited .inv-old-qty {
+  font-weight:400;
+  color:#6b7280;
+  text-decoration:line-through;
+  margin-right:.25rem;
+  font-size:.75rem;
+}
+
+/* ── Saving Spinner ── */
+.inv-save-spinner { display:inline-block; width:1rem; height:1rem; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:invSpin .6s linear infinite; margin-right:.5rem; }
+@keyframes invSpin { to{transform:rotate(360deg)} }
+
+/* ── Pagination ── */
+.inv-pagination { display:flex; justify-content:space-between; align-items:center; margin-top:1rem; font-size:.8125rem; color:#475569; }
+.inv-pagination__links { display:flex; gap:.25rem; }
+.inv-page-btn {
+  padding:.375rem .625rem; border:1px solid #e2e8f0; border-radius:.375rem; background:#fff; color:#475569;
+  font-size:.75rem; font-weight:600; cursor:pointer; transition:all .15s;
+}
+.inv-page-btn:hover:not(:disabled):not(.is-active) { background:#f1f5f9; }
+.inv-page-btn.is-active { background:#2563eb; color:#fff; border-color:#2563eb; }
+.inv-page-btn:disabled { opacity:.4; cursor:default; }
+
+/* ── Sticky Save Bar ── */
+.inv-sticky-bar {
+  display:none;
+  position:sticky;
+  top:0;
+  z-index:50;
+  background:#fff;
+  border:2px solid #e2e8f0;
+  border-radius:.5rem;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
+  padding:.75rem 1rem;
+  margin-bottom:1rem;
+}
+.inv-sticky-bar.is-visible { display:block; }
+.inv-sticky-bar__inner { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.inv-sticky-bar__count { font-size:.8125rem; font-weight:600; color:#475569; }
+.inv-sticky-bar__count.has-pending { color:#065f46; }
+
+/* ── Buttons ── */
+.inv-btn {
+  display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem;
+  border:none; border-radius:.5rem; font-size:.8125rem; font-weight:600;
+  cursor:pointer; transition:all .15s; white-space:nowrap;
+}
+.inv-btn:disabled { opacity:.5; cursor:default; }
+.inv-btn--primary { background:#2563eb; color:#fff; }
+.inv-btn--primary:hover:not(:disabled) { background:#1d4ed8; }
+.inv-btn--sticky { padding:.625rem 1.5rem; font-size:.875rem; }
+.inv-btn--sticky svg { width:1.125rem; height:1.125rem; }

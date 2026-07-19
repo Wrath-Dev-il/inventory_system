@@ -1,0 +1,40 @@
+- generic [active] [ref=e1]:
+  - text: "@fonts"
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - link "Dashboard" [ref=e4] [cursor=pointer]:
+        - /url: http://localhost/inventory_system/public/dashboard
+  - main [ref=e6]:
+    - generic [ref=e7]:
+      - heading "Let's get started" [level=1] [ref=e8]
+      - paragraph [ref=e9]:
+        - text: With so many options available to you,
+        - text: "we suggest you start with the following:"
+      - list [ref=e10]:
+        - listitem [ref=e11]:
+          - generic [ref=e15]:
+            - text: Read the
+            - link "Documentation" [ref=e16] [cursor=pointer]:
+              - /url: https://laravel.com/docs
+              - generic [ref=e17]: Documentation
+              - img [ref=e18]
+        - listitem [ref=e20]:
+          - generic [ref=e24]:
+            - text: Watch video tutorials at
+            - link "Laracasts" [ref=e25] [cursor=pointer]:
+              - /url: https://laracasts.com
+              - generic [ref=e26]: Laracasts
+              - img [ref=e27]
+      - list [ref=e29]:
+        - listitem [ref=e30]:
+          - link "Deploy now" [ref=e31] [cursor=pointer]:
+            - /url: https://cloud.laravel.com
+      - paragraph [ref=e32]:
+        - text: v11.55.0
+        - link "View changelog" [ref=e33] [cursor=pointer]:
+          - /url: https://github.com/laravel/framework/blob/13.x/CHANGELOG.md
+          - generic [ref=e34]: View changelog
+          - img [ref=e35]
+    - generic [ref=e37]:
+      - img [ref=e38]
+      - img [ref=e46]

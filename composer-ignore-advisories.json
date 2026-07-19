@@ -1,0 +1,10 @@
+{
+    "config": {
+        "allow-plugins": {
+            "composer/package-versions-deprecated": true
+        }
+    },
+    "provide": {
+        "php-http/client-implementation": "*"
+    }
+}
