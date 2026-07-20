@@ -105,8 +105,10 @@ class MasterListController extends Controller
 
         if ($this->productHasBlockingReferences($product)) {
             return response()->json([
-                'message' => 'This product is already referenced by inventory transactions and cannot be deleted.',
-            ], 409);
+                'blocked' => true,
+                'message' => 'This product is already used by another record, so it cannot be deleted. Keep it in the product list to preserve inventory and sales history.',
+                'product' => $deletedProduct,
+            ]);
         }
 
         try {
@@ -115,11 +117,14 @@ class MasterListController extends Controller
             });
         } catch (QueryException) {
             return response()->json([
-                'message' => 'This product is already referenced by inventory transactions and cannot be deleted.',
-            ], 409);
+                'blocked' => true,
+                'message' => 'This product is already used by another record, so it cannot be deleted. Keep it in the product list to preserve inventory and sales history.',
+                'product' => $deletedProduct,
+            ]);
         }
 
         return response()->json([
+            'deleted' => true,
             'message' => 'Product deleted successfully.',
             'product' => $deletedProduct,
             'stats' => $this->productStats(),

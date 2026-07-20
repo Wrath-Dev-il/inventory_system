@@ -483,6 +483,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const payload = await fetchJson(destroyUrl(productToDelete.id), { method: 'DELETE' });
+
+            if (payload.blocked) {
+                showDeleteError(payload.message || 'This product cannot be deleted because it is already used by another record.');
+                return;
+            }
+
             const deletedProduct = payload.product || {};
             const itemNo = deletedProduct.item_no || productToDelete.itemNo;
             const productName = deletedProduct.product || productToDelete.name;
