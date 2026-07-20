@@ -138,8 +138,10 @@ class CustomerController extends Controller
 
         if ($this->customerHasBlockingReferences($customer)) {
             return response()->json([
-                'message' => 'This customer is already referenced by sales or transaction records and cannot be deleted.',
-            ], 409);
+                'blocked' => true,
+                'message' => 'This customer is already used by sales or transaction records, so it cannot be deleted. Keep it in the customer list to preserve sales history.',
+                'customer' => $deletedCustomer,
+            ]);
         }
 
         try {
@@ -148,11 +150,14 @@ class CustomerController extends Controller
             });
         } catch (QueryException) {
             return response()->json([
-                'message' => 'This customer is already referenced by sales or transaction records and cannot be deleted.',
-            ], 409);
+                'blocked' => true,
+                'message' => 'This customer is already used by sales or transaction records, so it cannot be deleted. Keep it in the customer list to preserve sales history.',
+                'customer' => $deletedCustomer,
+            ]);
         }
 
         return response()->json([
+            'deleted' => true,
             'message' => 'Customer deleted successfully.',
             'customer' => $deletedCustomer,
             'stats' => $this->customerStats(),

@@ -754,6 +754,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const payload = await fetchJson(destroyUrl(customerToDelete.id), { method: 'DELETE' });
+
+            if (payload.blocked) {
+                showDeleteError(payload.message || 'This customer cannot be deleted because it is already used by another record.');
+                return;
+            }
+
             const deletedCustomer = payload.customer || {};
             const customerNo = deletedCustomer.customer_no || customerToDelete.customerNo;
             const customerName = deletedCustomer.customer_name || customerToDelete.customerName;
