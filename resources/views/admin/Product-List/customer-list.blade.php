@@ -235,14 +235,6 @@
                                 </label>
                             </fieldset>
                             <label class="customer-field"><span>%Disc <em data-discount-hint></em></span><input type="number" name="discount_percent" min="0" max="100" step="0.01" value="0"></label>
-                            <label class="customer-field"><span>Sales Agent</span>
-                                <select name="sales_agent_id">
-                                    <option value="">No sales agent assigned</option>
-                                    @foreach ($salesAgents as $agent)
-                                        <option value="{{ $agent['id'] }}">{{ $agent['name'] }} ({{ $agent['agent_no'] }})</option>
-                                    @endforeach
-                                </select>
-                            </label>
                             <label class="customer-field"><span>Salesman</span><input type="text" name="salesman_name" placeholder="Enter salesman name"></label>
                             <label class="customer-field"><span>Date Started As Customer</span><input type="date" name="date_started"></label>
                             <label class="customer-field"><span>Terms</span><input type="text" name="terms" placeholder="Cash, 7 Days, 30 Days, or agreed terms"></label>
