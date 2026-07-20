@@ -15,6 +15,7 @@ class Customer extends Model
         'price_reference_id',
         'discount_percent',
         'sales_agent_id',
+        'salesman_name',
         'date_started',
         'terms',
     ];

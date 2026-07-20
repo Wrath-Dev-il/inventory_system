@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\SalesOrder;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +28,13 @@ class DashboardController extends Controller
         $totalCustomers = $customer ? DB::table($customer['table'])->count() : 0;
         $lowStockCount = $product ? $this->lowStockQuery($product)->count() : 0;
 
+        $hasSalesOrders = Schema::hasTable('sales_orders');
+        $totalSales = $hasSalesOrders ? SalesOrder::query()->where('status', 'Confirmed')->sum('total_with_vat') : 0;
+
+        $incomePeriods = $this->salesPeriodMetrics('total_with_vat', null);
+        $greenPeriods = $this->salesPeriodMetrics('total_with_vat', 'green');
+        $yellowPeriods = $this->salesPeriodMetrics('total_with_vat', 'yellow');
+
         return view('admin.dashboard', [
             'adminName' => Auth::user()?->display_name,
             'companyName' => config('app.name', 'CONTROL A Trading and Services'),
@@ -34,6 +42,11 @@ class DashboardController extends Controller
             'lowStockCount' => $lowStockCount,
             'totalSuppliers' => $totalSuppliers,
             'totalCustomers' => $totalCustomers,
+            'totalSales' => $totalSales,
+            'incomePeriods' => $incomePeriods,
+            'greenPeriods' => $greenPeriods,
+            'yellowPeriods' => $yellowPeriods,
+            'hasSalesOrders' => $hasSalesOrders,
             'highStockProducts' => $product ? $this->stockPaginator($product, 'high', $request) : null,
             'lowStockProducts' => $product ? $this->stockPaginator($product, 'low', $request) : null,
             'qtyDistribution' => $product ? $this->qtyDistribution($product) : $this->emptyQtyDistribution(),
@@ -42,6 +55,33 @@ class DashboardController extends Controller
             'stockFilters' => $this->stockFilters($request),
             'activeStockTab' => $request->query('active_stock_tab') === 'low' ? 'low' : 'high',
         ]);
+    }
+
+    private function salesPeriodMetrics(string $column, ?string $priceReference): array
+    {
+        if (! Schema::hasTable('sales_orders')) {
+            return ['daily' => 0, 'weekly' => 0, 'monthly' => 0, 'quarterly' => 0, 'annual' => 0];
+        }
+
+        $query = SalesOrder::query()->where('status', 'Confirmed');
+
+        if ($priceReference) {
+            $query->where('price_reference_snapshot', $priceReference);
+        }
+
+        $daily = (clone $query)->whereDate('confirmed_at', today())->sum($column);
+        $weekly = (clone $query)->whereBetween('confirmed_at', [now()->startOfWeek(), now()->endOfWeek()])->sum($column);
+        $monthly = (clone $query)->whereMonth('confirmed_at', now()->month)->whereYear('confirmed_at', now()->year)->sum($column);
+        $quarterly = (clone $query)->whereBetween('confirmed_at', [now()->startOfQuarter(), now()->endOfQuarter()])->sum($column);
+        $annual = (clone $query)->whereYear('confirmed_at', now()->year)->sum($column);
+
+        return [
+            'daily' => (float) $daily,
+            'weekly' => (float) $weekly,
+            'monthly' => (float) $monthly,
+            'quarterly' => (float) $quarterly,
+            'annual' => (float) $annual,
+        ];
     }
 
     private function inventorySchema(): array

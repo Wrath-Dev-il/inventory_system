@@ -4,6 +4,7 @@
         || request()->routeIs('admin.customers.*')
         || request()->routeIs('admin.product-configuration.*');
     $inventoryActive = request()->routeIs('admin.inventory.*');
+    $salesActive = request()->routeIs('admin.sales-order.*');
     $systemSecurityActive = request()->routeIs('admin.system-security.*');
 @endphp
 
@@ -203,6 +204,42 @@
                         </svg>
                     </span>
                     <span>Inventory Adjustment</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="admin-sidebar__group {{ $salesActive ? 'is-active' : '' }}" data-sidebar-group>
+            <button
+                type="button"
+                class="admin-sidebar__link admin-sidebar__dropdown {{ $salesActive ? 'is-active' : '' }}"
+                data-sidebar-toggle
+                data-tooltip="Sales"
+                aria-expanded="false"
+                aria-controls="admin-sales-menu"
+            >
+                <span class="admin-sidebar__icon-box">
+                    <svg class="admin-sidebar__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <rect x="9" y="3" width="6" height="4" rx="1.5" stroke="currentColor" stroke-width="2"/>
+                        <path d="M9 14l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <span class="admin-sidebar__label">Sales</span>
+                <svg class="admin-sidebar__chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+
+            <div class="admin-sidebar__submenu" id="admin-sales-menu">
+                <a href="{{ route('admin.sales-order.index') }}" class="admin-sidebar__sublink {{ request()->routeIs('admin.sales-order.*') ? 'is-active' : '' }}">
+                    <span class="admin-sidebar__subicon-box">
+                        <svg class="admin-sidebar__subicon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <rect x="9" y="3" width="6" height="4" rx="1.5" stroke="currentColor" stroke-width="2"/>
+                            <path d="M9 14l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span>Sales Order</span>
                 </a>
             </div>
         </div>

@@ -1,8 +1,92 @@
 .admin-card-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
     margin-bottom: 22px;
+}
+
+@media (max-width: 1100px) {
+    .admin-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.sales-metric-card {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid #d8dde6;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+}
+
+.sales-metric-card__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.sales-metric-card__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sales-metric-card__icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.sales-metric-card__icon--total { background: #eef2ff; color: #4338ca; }
+.sales-metric-card__icon--income { background: #ecfdf5; color: #16a34a; }
+.sales-metric-card__icon--green { background: #f0fdf4; color: #166534; }
+.sales-metric-card__icon--yellow { background: #fef9c3; color: #854d0e; }
+
+.sales-metric-card__label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #667085;
+    margin: 0;
+}
+
+.sales-metric-card__value {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 4px;
+}
+
+.sales-metric-card__period-tabs {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+}
+
+.sales-metric-card__period-tab {
+    padding: 3px 8px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+}
+
+.sales-metric-card__period-tab:hover {
+    background: #f1f5f9;
+    color: #334155;
+}
+
+.sales-metric-card__period-tab.is-active {
+    background: #071a3d;
+    color: #fff;
 }
 
 .metric-card {

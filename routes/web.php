@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\InventoryAdjustmentController;
 use App\Http\Controllers\Admin\MasterListController;
 use App\Http\Controllers\Admin\ProductConfigurationController;
+use App\Http\Controllers\Admin\SalesOrderController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +46,19 @@ Route::middleware(['auth', 'admin'])
         Route::get('/inventory/adjustment', [InventoryAdjustmentController::class, 'index'])->name('inventory.adjustment');
         Route::get('/inventory/adjustment/data', [InventoryAdjustmentController::class, 'data'])->name('inventory.adjustment.data');
         Route::post('/inventory/adjustment/save', [InventoryAdjustmentController::class, 'save'])->name('inventory.adjustment.save');
+        Route::prefix('sales-order')->name('sales-order.')->group(function () {
+            Route::get('/', [SalesOrderController::class, 'index'])->name('index');
+            Route::post('/', [SalesOrderController::class, 'store'])->name('store');
+            Route::get('/{sales_order}', [SalesOrderController::class, 'show'])->name('show')->whereNumber('sales_order');
+            Route::put('/{sales_order}', [SalesOrderController::class, 'update'])->name('update')->whereNumber('sales_order');
+            Route::delete('/{sales_order}', [SalesOrderController::class, 'destroy'])->name('destroy')->whereNumber('sales_order');
+            Route::get('/api/customers', [SalesOrderController::class, 'customers'])->name('customers');
+            Route::get('/api/products', [SalesOrderController::class, 'products'])->name('products');
+            Route::get('/{sales_order}/print-sales-order', [SalesOrderController::class, 'printSalesOrder'])->name('print-sales-order')->whereNumber('sales_order');
+            Route::get('/{sales_order}/print-sales-invoice', [SalesOrderController::class, 'printSalesInvoice'])->name('print-sales-invoice')->whereNumber('sales_order');
+            Route::get('/{sales_order}/print-both', [SalesOrderController::class, 'printBoth'])->name('print-both')->whereNumber('sales_order');
+        });
+
         Route::get('/system-security/user-management', [UserManagementController::class, 'index'])->name('system-security.user-management');
         Route::get('/system-security/user-management/fetch/{role}', [UserManagementController::class, 'fetch'])->name('system-security.user-management.fetch');
         Route::post('/system-security/user-management', [UserManagementController::class, 'store'])->name('system-security.user-management.store');

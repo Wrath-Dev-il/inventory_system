@@ -25,6 +25,7 @@ class CustomerController extends Controller
         'price_reference',
         'discount_percent',
         'sales_agent',
+        'salesman',
         'address',
         'date_started',
         'terms',
@@ -36,6 +37,7 @@ class CustomerController extends Controller
         'price_reference',
         'discount_percent',
         'sales_agent_id',
+        'salesman_name',
         'address',
         'date_started',
         'terms',
@@ -179,7 +181,7 @@ class CustomerController extends Controller
 
         if ($globalSearch !== '') {
             $query->where(function (Builder $nested) use ($globalSearch) {
-                foreach (['customer_no', 'customer_name', 'tin', 'discount_percent', 'date_started', 'terms'] as $column) {
+                foreach (['customer_no', 'customer_name', 'tin', 'salesman_name', 'discount_percent', 'date_started', 'terms'] as $column) {
                     $nested->orWhere($column, 'like', '%'.$globalSearch.'%');
                 }
 
@@ -233,6 +235,11 @@ class CustomerController extends Controller
                 continue;
             }
 
+            if ($column === 'salesman') {
+                $query->where('salesman_name', 'like', '%'.$term.'%');
+                continue;
+            }
+
             $query->where($column, 'like', '%'.$term.'%');
         }
     }
@@ -245,6 +252,7 @@ class CustomerController extends Controller
             'price_reference' => ['required', Rule::in(['green', 'yellow'])],
             'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'sales_agent_id' => ['nullable', 'integer', 'exists:sales_agents,id'],
+            'salesman_name' => ['nullable', 'string', 'max:150'],
             'address' => ['required', 'string', 'max:2000'],
             'date_started' => ['nullable', 'date'],
             'terms' => ['nullable', 'string', 'max:120'],
@@ -264,6 +272,7 @@ class CustomerController extends Controller
             'price_reference_id' => $priceReference->id,
             'discount_percent' => $discount,
             'sales_agent_id' => $payload['sales_agent_id'] ?? null,
+            'salesman_name' => $this->nullableString($payload['salesman_name'] ?? null),
             'date_started' => $payload['date_started'] ?? null,
             'terms' => $this->nullableString($payload['terms'] ?? null),
         ];
@@ -271,7 +280,7 @@ class CustomerController extends Controller
 
     private function applyInlineEdit(Customer $customer, string $field, mixed $value): void
     {
-        if (in_array($field, ['customer_name', 'tin', 'address', 'date_started', 'terms'], true)) {
+        if (in_array($field, ['customer_name', 'tin', 'salesman_name', 'address', 'date_started', 'terms'], true)) {
             if ($field === 'address') {
                 $this->saveCustomerAddress($customer, ['address' => $value]);
                 return;
@@ -385,6 +394,7 @@ class CustomerController extends Controller
             'sales_agent_id' => $customer->sales_agent_id,
             'sales_agent' => $agent?->name,
             'sales_agent_no' => $agent?->agent_no,
+            'salesman_name' => $customer->salesman_name,
             'address' => $address?->formatted_address,
             'date_started' => $customer->date_started?->toDateString(),
             'terms' => $customer->terms,

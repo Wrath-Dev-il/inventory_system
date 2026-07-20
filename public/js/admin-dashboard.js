@@ -243,4 +243,26 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
         window.addEventListener('load', initChart, { once: true });
     }
+
+    document.querySelectorAll('.sales-metric-card__period-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            var card = tab.closest('[data-sales-card]');
+            var period = tab.getAttribute('data-period');
+            var salesPeriod = tab.getAttribute('data-sales-period');
+            var dataEl = document.getElementById('salesPeriodData');
+            if (!dataEl) return;
+            var periodData = {};
+            try { periodData = JSON.parse(dataEl.textContent); } catch (e) {}
+
+            card.querySelectorAll('.sales-metric-card__period-tab').forEach(function (t) {
+                t.classList.remove('is-active');
+            });
+            tab.classList.add('is-active');
+
+            var valueEl = card.querySelector('[data-sales-value="' + salesPeriod + '"]');
+            if (valueEl && periodData[salesPeriod] && periodData[salesPeriod][period] !== undefined) {
+                valueEl.textContent = '\u20B1' + Number(periodData[salesPeriod][period]).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+        });
+    });
 });

@@ -83,6 +83,67 @@
                     <p class="metric-card__value">{{ number_format($totalCustomers) }}</p>
                     <span class="metric-card__hint">Customer records</span>
                 </article>
+
+                <article class="sales-metric-card">
+                    <div class="sales-metric-card__header">
+                        <span class="sales-metric-card__icon sales-metric-card__icon--total">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </span>
+                        <p class="sales-metric-card__label">Total Sales</p>
+                    </div>
+                    <p class="sales-metric-card__value">&#8369;{{ number_format($totalSales, 2) }}</p>
+                </article>
+
+                <article class="sales-metric-card" data-sales-card="income">
+                    <div class="sales-metric-card__header">
+                        <span class="sales-metric-card__icon sales-metric-card__icon--income">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M12 20V10M8 14l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </span>
+                        <p class="sales-metric-card__label">Income</p>
+                    </div>
+                    <p class="sales-metric-card__value" data-sales-value="income">&#8369;{{ number_format($incomePeriods['monthly'], 2) }}</p>
+                    <div class="sales-metric-card__period-tabs">
+                        <button type="button" class="sales-metric-card__period-tab" data-sales-period="income" data-period="daily">Daily</button>
+                        <button type="button" class="sales-metric-card__period-tab" data-sales-period="income" data-period="weekly">Weekly</button>
+                        <button type="button" class="sales-metric-card__period-tab is-active" data-sales-period="income" data-period="monthly">Monthly</button>
+                        <button type="button" class="sales-metric-card__period-tab" data-sales-period="income" data-period="quarterly">Quarterly</button>
+                        <button type="button" class="sales-metric-card__period-tab" data-sales-period="income" data-period="annual">Annual</button>
+                    </div>
+                </article>
+
+                <article class="sales-metric-card" data-sales-card="green">
+                    <div class="sales-metric-card__header">
+                        <span class="sales-metric-card__icon sales-metric-card__icon--green">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
+                        <p class="sales-metric-card__label">Green Invoice</p>
+                    </div>
+                    <p class="sales-metric-card__value" data-sales-value="green">&#8369;{{ number_format($greenPeriods['monthly'], 2) }}</p>
+                    <div class="sales-metric-card__period-tabs">
+                        <button type="button" class="sales-metric-card__period-tab" data-sales-period="green" data-period="daily">Daily</button>
+                        <button type="button" class="sales-metric-card__period-tab" data-sales-period="green" data-period="weekly">Weekly</button>
+                        <button type="button" class="sales-metric-card__period-tab is-active" data-sales-period="green" data-period="monthly">Monthly</button>
+                        <button type="button" class="sales-metric-card__period-tab" data-sales-period="green" data-period="quarterly">Quarterly</button>
+                        <button type="button" class="sales-metric-card__period-tab" data-sales-period="green" data-period="annual">Annual</button>
+                    </div>
+                </article>
+
+                <article class="sales-metric-card" data-sales-card="yellow">
+                    <div class="sales-metric-card__header">
+                        <span class="sales-metric-card__icon sales-metric-card__icon--yellow">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m10.29 3.86-8.4 14A2 2 0 0 0 3.6 21h16.8a2 2 0 0 0 1.71-3.14l-8.4-14a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2"/></svg>
+                        </span>
+                        <p class="sales-metric-card__label">Yellow Invoice</p>
+                    </div>
+                    <p class="sales-metric-card__value" data-sales-value="yellow">&#8369;{{ number_format($yellowPeriods['monthly'], 2) }}</p>
+                    <div class="sales-metric-card__period-tabs">
+                        <button type="button" class="sales-metric-card__period-tab" data-sales-period="yellow" data-period="daily">Daily</button>
+                        <button type="button" class="sales-metric-card__period-tab" data-sales-period="yellow" data-period="weekly">Weekly</button>
+                        <button type="button" class="sales-metric-card__period-tab is-active" data-sales-period="yellow" data-period="monthly">Monthly</button>
+                        <button type="button" class="sales-metric-card__period-tab" data-sales-period="yellow" data-period="quarterly">Quarterly</button>
+                        <button type="button" class="sales-metric-card__period-tab" data-sales-period="yellow" data-period="annual">Annual</button>
+                    </div>
+                </article>
             </section>
 
             <section class="admin-content-grid">
@@ -320,6 +381,7 @@
     </div>
 
     <script type="application/json" id="qtyDistributionData">@json($qtyDistribution)</script>
+    <script type="application/json" id="salesPeriodData">@json(['income' => $incomePeriods, 'green' => $greenPeriods, 'yellow' => $yellowPeriods])</script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
     <script src="{{ asset('js/admin-layout.js') }}" defer></script>
     <script src="{{ asset('js/admin-dashboard.js') }}?v={{ filemtime(public_path('js/admin-dashboard.js')) }}" defer></script>

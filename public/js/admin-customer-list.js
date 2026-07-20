@@ -238,6 +238,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setDetail('price_reference_label', displayText(customer.price_reference_label));
         setDetail('discount_percent', formatPercent(customer.discount_percent));
         setDetail('sales_agent', displayText(customer.sales_agent));
+        setDetail('salesman', displayText(customer.salesman_name));
         setDetail('date_started', displayText(customer.date_started));
         setDetail('terms', displayText(customer.terms));
         setDetail('address', displayText(customer.address));
@@ -615,6 +616,7 @@ document.addEventListener('DOMContentLoaded', function () {
             price_reference: customer.price_reference,
             discount_percent: customer.discount_percent,
             sales_agent_id: customer.sales_agent_id,
+            salesman_name: customer.salesman_name,
             address: customer.address,
             date_started: customer.date_started,
             terms: customer.terms,
