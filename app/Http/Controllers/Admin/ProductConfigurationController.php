@@ -139,24 +139,38 @@ class ProductConfigurationController extends Controller
             ], 404);
         }
 
-        if ($source->equivalencies()->exists()) {
-            return response()->json([
-                'blocked' => true,
-                'success' => false,
-                'message' => 'Cannot delete this item source because it already has conversion records. Keep it to preserve product cost history.',
-            ]);
-        }
-
-        if (Schema::hasTable('products') && Schema::hasColumn('products', 'item_source_id') && DB::table('products')->where('item_source_id', $source->id)->exists()) {
-            return response()->json([
-                'blocked' => true,
-                'success' => false,
-                'message' => 'Cannot delete this item source because products are already linked to it. Reassign those products first.',
-            ]);
-        }
-
         try {
-            $source->delete();
+            $detachedProducts = DB::transaction(function () use ($source) {
+                $detachedProducts = 0;
+
+                if (Schema::hasTable('item_source_equivalency_logs')) {
+                    DB::table('item_source_equivalency_logs')
+                        ->where('item_source_id', $source->id)
+                        ->delete();
+                }
+
+                if (Schema::hasTable('item_source_equivalencies')) {
+                    DB::table('item_source_equivalencies')
+                        ->where('item_source_id', $source->id)
+                        ->delete();
+                }
+
+                if (Schema::hasTable('products') && Schema::hasColumn('products', 'item_source_id')) {
+                    $update = ['item_source_id' => null, 'updated_at' => now()];
+
+                    if (Schema::hasColumn('products', 'item_source')) {
+                        $update['item_source'] = null;
+                    }
+
+                    $detachedProducts = DB::table('products')
+                        ->where('item_source_id', $source->id)
+                        ->update($update);
+                }
+
+                $source->delete();
+
+                return $detachedProducts;
+            });
         } catch (QueryException) {
             return response()->json([
                 'blocked' => true,
@@ -167,7 +181,7 @@ class ProductConfigurationController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Item Source Deleted.',
+            'message' => 'Item Source Deleted. Detached ' . $detachedProducts . ' linked product' . ($detachedProducts === 1 ? '' : 's') . '.',
         ]);
     }
 
