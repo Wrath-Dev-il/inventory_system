@@ -34,7 +34,7 @@
             <section class="admin-card-grid" aria-label="Dashboard summary">
                 <article class="metric-card">
                     <div class="metric-card__icon metric-card__icon--product" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
                             <path d="m21 8-9-5-9 5 9 5 9-5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
                             <path d="M3 8v8l9 5 9-5V8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
                             <path d="M12 13v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -47,7 +47,7 @@
 
                 <article class="metric-card">
                     <div class="metric-card__icon metric-card__icon--warning" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
                             <path d="m10.29 3.86-8.4 14A2 2 0 0 0 3.6 21h16.8a2 2 0 0 0 1.71-3.14l-8.4-14a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
                             <path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
@@ -59,7 +59,7 @@
 
                 <article class="metric-card">
                     <div class="metric-card__icon metric-card__icon--supplier" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
                             <path d="M10 17h4V5H2v12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             <path d="M14 8h4l4 4v5h-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             <circle cx="7.5" cy="17.5" r="2.5" stroke="currentColor" stroke-width="2"/>
@@ -73,7 +73,7 @@
 
                 <article class="metric-card">
                     <div class="metric-card__icon metric-card__icon--customer" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
                             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
                             <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -87,7 +87,7 @@
                 <article class="sales-metric-card">
                     <div class="sales-metric-card__header">
                         <span class="sales-metric-card__icon sales-metric-card__icon--total">
-                            <svg viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                         </span>
                         <p class="sales-metric-card__label">Total Sales</p>
                     </div>
@@ -97,7 +97,7 @@
                 <article class="sales-metric-card" data-sales-card="income">
                     <div class="sales-metric-card__header">
                         <span class="sales-metric-card__icon sales-metric-card__icon--income">
-                            <svg viewBox="0 0 24 24" fill="none"><path d="M12 20V10M8 14l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 20V10M8 14l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                         </span>
                         <p class="sales-metric-card__label">Income</p>
                     </div>
@@ -114,7 +114,7 @@
                 <article class="sales-metric-card" data-sales-card="green">
                     <div class="sales-metric-card__header">
                         <span class="sales-metric-card__icon sales-metric-card__icon--green">
-                            <svg viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </span>
                         <p class="sales-metric-card__label">Green Invoice</p>
                     </div>
@@ -131,7 +131,7 @@
                 <article class="sales-metric-card" data-sales-card="yellow">
                     <div class="sales-metric-card__header">
                         <span class="sales-metric-card__icon sales-metric-card__icon--yellow">
-                            <svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m10.29 3.86-8.4 14A2 2 0 0 0 3.6 21h16.8a2 2 0 0 0 1.71-3.14l-8.4-14a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2"/></svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m10.29 3.86-8.4 14A2 2 0 0 0 3.6 21h16.8a2 2 0 0 0 1.71-3.14l-8.4-14a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2"/></svg>
                         </span>
                         <p class="sales-metric-card__label">Yellow Invoice</p>
                     </div>
