@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\ItemSource;
 use App\Models\ItemSourceEquivalency;
 use App\Services\CurrencyExchangeRateService;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -139,49 +138,19 @@ class ProductConfigurationController extends Controller
             ], 404);
         }
 
-        try {
-            $detachedProducts = DB::transaction(function () use ($source) {
-                $detachedProducts = 0;
-
-                if (Schema::hasTable('item_source_equivalency_logs')) {
-                    DB::table('item_source_equivalency_logs')
-                        ->where('item_source_id', $source->id)
-                        ->delete();
-                }
-
-                if (Schema::hasTable('item_source_equivalencies')) {
-                    DB::table('item_source_equivalencies')
-                        ->where('item_source_id', $source->id)
-                        ->delete();
-                }
-
-                if (Schema::hasTable('products') && Schema::hasColumn('products', 'item_source_id')) {
-                    $update = ['item_source_id' => null, 'updated_at' => now()];
-
-                    if (Schema::hasColumn('products', 'item_source')) {
-                        $update['item_source'] = null;
-                    }
-
-                    $detachedProducts = DB::table('products')
-                        ->where('item_source_id', $source->id)
-                        ->update($update);
-                }
-
-                $source->delete();
-
-                return $detachedProducts;
-            });
-        } catch (QueryException) {
+        if (! Schema::hasColumn('item_sources', 'deleted_at')) {
             return response()->json([
                 'blocked' => true,
                 'success' => false,
-                'message' => 'Cannot delete this item source because another record is using it.',
+                'message' => 'Run the latest migration first so item sources can be hidden without removing conversion logs or product links.',
             ]);
         }
 
+        $source->delete();
+
         return response()->json([
             'success' => true,
-            'message' => 'Item Source Deleted. Detached ' . $detachedProducts . ' linked product' . ($detachedProducts === 1 ? '' : 's') . '.',
+            'message' => 'Item Source removed from the active list. Conversion logs and linked products were kept.',
         ]);
     }
 
