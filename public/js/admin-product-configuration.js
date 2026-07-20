@@ -250,12 +250,24 @@
       method: 'DELETE',
       headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
     })
-    .then(function (r) { return r.json(); })
+    .then(function (r) {
+      return r.json().catch(function () {
+        return { success: false, message: 'Failed to delete item source.' };
+      }).then(function (data) {
+        data._ok = r.ok;
+        data._status = r.status;
+        return data;
+      });
+    })
     .then(function (data) {
       if (data.success) {
         removeItemSourceFromState(id);
         closeAllModals();
         showNotice(data.message || 'Item source deleted.', 'success');
+      } else if (data.blocked) {
+        showNotice(data.message || 'This item source cannot be deleted because it is already used.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Delete';
       } else {
         showNotice(data.message || 'Failed to delete item source.', 'error');
         btn.disabled = false;

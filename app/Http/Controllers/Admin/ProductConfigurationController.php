@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\ItemSource;
 use App\Models\ItemSourceEquivalency;
 use App\Services\CurrencyExchangeRateService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class ProductConfigurationController extends Controller
@@ -139,12 +141,29 @@ class ProductConfigurationController extends Controller
 
         if ($source->equivalencies()->exists()) {
             return response()->json([
+                'blocked' => true,
                 'success' => false,
-                'message' => 'Cannot delete. This source has existing conversion records.',
-            ], 409);
+                'message' => 'Cannot delete this item source because it already has conversion records. Keep it to preserve product cost history.',
+            ]);
         }
 
-        $source->delete();
+        if (Schema::hasTable('products') && Schema::hasColumn('products', 'item_source_id') && DB::table('products')->where('item_source_id', $source->id)->exists()) {
+            return response()->json([
+                'blocked' => true,
+                'success' => false,
+                'message' => 'Cannot delete this item source because products are already linked to it. Reassign those products first.',
+            ]);
+        }
+
+        try {
+            $source->delete();
+        } catch (QueryException) {
+            return response()->json([
+                'blocked' => true,
+                'success' => false,
+                'message' => 'Cannot delete this item source because another record is using it.',
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -212,14 +231,16 @@ class ProductConfigurationController extends Controller
                     ]
                 );
 
-                DB::table('item_source_equivalency_logs')->insert([
-                    'item_source_id' => $itemSourceId,
-                    'multiplier' => $multiplier,
-                    'yuan_amount' => $yuanAmount,
-                    'peso_amount' => $pesoAmount,
-                    'created_by' => $request->user()?->login_ID,
-                    'logged_at' => now(),
-                ]);
+                if (Schema::hasTable('item_source_equivalency_logs')) {
+                    DB::table('item_source_equivalency_logs')->insert([
+                        'item_source_id' => $itemSourceId,
+                        'multiplier' => $multiplier,
+                        'yuan_amount' => $yuanAmount,
+                        'peso_amount' => $pesoAmount,
+                        'created_by' => $request->user()?->login_ID,
+                        'logged_at' => now(),
+                    ]);
+                }
 
                 $linkedProducts = DB::table('products')->where('item_source_id', $itemSourceId)->get();
                 $updatedCount = 0;
@@ -302,6 +323,21 @@ class ProductConfigurationController extends Controller
 
     public function listLogs(Request $request): JsonResponse
     {
+        if (! Schema::hasTable('item_source_equivalency_logs')) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'pagination' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => 25,
+                    'total' => 0,
+                    'from' => null,
+                    'to' => null,
+                ],
+            ]);
+        }
+
         $perPage = 25;
         $query = DB::table('item_source_equivalency_logs')
             ->join('item_sources', 'item_source_equivalency_logs.item_source_id', '=', 'item_sources.id')

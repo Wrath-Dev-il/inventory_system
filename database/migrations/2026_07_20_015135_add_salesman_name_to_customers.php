@@ -8,15 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('customers', function (Blueprint $table) {
-            $table->string('salesman_name', 150)->nullable()->after('sales_agent_id');
-        });
+        if (Schema::hasTable('customers') && ! Schema::hasColumn('customers', 'salesman_name')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->string('salesman_name', 150)->nullable()->after('sales_agent_id');
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('customers', function (Blueprint $table) {
-            $table->dropColumn('salesman_name');
-        });
+        if (Schema::hasTable('customers') && Schema::hasColumn('customers', 'salesman_name')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->dropColumn('salesman_name');
+            });
+        }
     }
 };
