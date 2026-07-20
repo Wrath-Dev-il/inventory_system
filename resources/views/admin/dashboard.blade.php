@@ -84,7 +84,7 @@
                     <span class="metric-card__hint">Customer records</span>
                 </article>
 
-                <article class="sales-metric-card">
+                <article class="metric-card sales-metric-card">
                     <div class="sales-metric-card__header">
                         <span class="sales-metric-card__icon sales-metric-card__icon--total">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -94,7 +94,7 @@
                     <p class="sales-metric-card__value">&#8369;{{ number_format($totalSales, 2) }}</p>
                 </article>
 
-                <article class="sales-metric-card" data-sales-card="income">
+                <article class="metric-card sales-metric-card" data-sales-card="income">
                     <div class="sales-metric-card__header">
                         <span class="sales-metric-card__icon sales-metric-card__icon--income">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 20V10M8 14l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -111,7 +111,7 @@
                     </div>
                 </article>
 
-                <article class="sales-metric-card" data-sales-card="green">
+                <article class="metric-card sales-metric-card" data-sales-card="green">
                     <div class="sales-metric-card__header">
                         <span class="sales-metric-card__icon sales-metric-card__icon--green">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -128,7 +128,7 @@
                     </div>
                 </article>
 
-                <article class="sales-metric-card" data-sales-card="yellow">
+                <article class="metric-card sales-metric-card" data-sales-card="yellow">
                     <div class="sales-metric-card__header">
                         <span class="sales-metric-card__icon sales-metric-card__icon--yellow">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m10.29 3.86-8.4 14A2 2 0 0 0 3.6 21h16.8a2 2 0 0 0 1.71-3.14l-8.4-14a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2"/></svg>
