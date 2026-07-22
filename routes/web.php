@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\InventoryAdjustmentController;
 use App\Http\Controllers\Admin\MasterListController;
 use App\Http\Controllers\Admin\ProductConfigurationController;
+use App\Http\Controllers\Admin\SalesAgentController;
 use App\Http\Controllers\Admin\SalesOrderController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\AuthController;
@@ -37,6 +38,14 @@ Route::middleware(['auth', 'admin'])
         Route::patch('/products/bulk-update', [MasterListController::class, 'bulkUpdateProducts'])->name('products.bulk-update');
         Route::delete('/products/{product}', [MasterListController::class, 'destroyProduct'])->name('products.destroy');
         Route::get('/products/{product}', [MasterListController::class, 'product'])->name('products.show');
+        Route::prefix('sales-agents')->name('sales-agents.')->group(function () {
+            Route::get('/', [SalesAgentController::class, 'index'])->name('index');
+            Route::post('/', [SalesAgentController::class, 'store'])->name('store');
+            Route::get('/{salesAgent}', [SalesAgentController::class, 'show'])->name('show');
+            Route::get('/{salesAgent}/customers', [SalesAgentController::class, 'customers'])->name('customers');
+            Route::patch('/{salesAgent}', [SalesAgentController::class, 'update'])->name('update');
+            Route::delete('/{salesAgent}', [SalesAgentController::class, 'destroy'])->name('destroy');
+        });
         Route::get('/suppliers', [MasterListController::class, 'suppliers'])->name('suppliers.index');
         Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
         Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');

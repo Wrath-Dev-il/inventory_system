@@ -2,7 +2,8 @@
     $masterListActive = request()->routeIs('admin.products.*')
         || request()->routeIs('admin.suppliers.*')
         || request()->routeIs('admin.customers.*')
-        || request()->routeIs('admin.product-configuration.*');
+        || request()->routeIs('admin.product-configuration.*')
+        || request()->routeIs('admin.sales-agents.*');
     $inventoryActive = request()->routeIs('admin.inventory.*');
     $salesActive = request()->routeIs('admin.sales-order.*');
     $systemSecurityActive = request()->routeIs('admin.system-security.*');
@@ -170,6 +171,17 @@
                         </svg>
                     </span>
                     <span>Customer List</span>
+                </a>
+
+                <a href="{{ route('admin.sales-agents.index') }}" class="admin-sidebar__sublink {{ request()->routeIs('admin.sales-agents.*') ? 'is-active' : '' }}">
+                    <span class="admin-sidebar__subicon-box">
+                        <svg class="admin-sidebar__subicon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    <span>Sales Agent List</span>
                 </a>
             </div>
         </div>
