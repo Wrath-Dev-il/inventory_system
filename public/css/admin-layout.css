@@ -332,7 +332,7 @@ body {
 
 .admin-app.is-sidebar-expanded .admin-sidebar__group.is-open .admin-sidebar__submenu,
 .admin-app:has(.admin-sidebar:focus-within) .admin-sidebar__group.is-open .admin-sidebar__submenu {
-    max-height: 170px;
+    max-height: 250px;
     margin-top: 6px;
     opacity: 1;
 }
@@ -806,7 +806,7 @@ body {
     }
 
     .admin-sidebar__group.is-open .admin-sidebar__submenu {
-        max-height: 170px;
+        max-height: 250px;
         margin-top: 6px;
         opacity: 1;
     }
