@@ -103,14 +103,6 @@ class MasterListController extends Controller
 
         $deletedProduct = $this->normalizeProduct($product);
 
-        if ($this->productHasBlockingReferences($product)) {
-            return response()->json([
-                'blocked' => true,
-                'message' => 'This product is already used by another record, so it cannot be deleted. Keep it in the product list to preserve inventory and sales history.',
-                'product' => $deletedProduct,
-            ]);
-        }
-
         try {
             DB::transaction(function () use ($product) {
                 $product->delete();
@@ -118,7 +110,7 @@ class MasterListController extends Controller
         } catch (QueryException) {
             return response()->json([
                 'blocked' => true,
-                'message' => 'This product is already used by another record, so it cannot be deleted. Keep it in the product list to preserve inventory and sales history.',
+                'message' => 'Unable to delete this product right now. Please try again.',
                 'product' => $deletedProduct,
             ]);
         }
@@ -411,46 +403,9 @@ class MasterListController extends Controller
         ], 201);
     }
 
-    private function productHasBlockingReferences(Product $product): bool
-    {
-        $connection = DB::connection();
-
-        if ($connection->getDriverName() !== 'mysql') {
-            return false;
-        }
-
-        $database = $connection->getDatabaseName();
-        $references = collect(DB::select(
-            "SELECT TABLE_NAME, COLUMN_NAME
-             FROM information_schema.KEY_COLUMN_USAGE
-             WHERE TABLE_SCHEMA = ?
-               AND REFERENCED_TABLE_NAME = 'products'
-               AND REFERENCED_COLUMN_NAME = 'id'",
-            [$database]
-        ));
-
-        $productIdColumns = collect(DB::select(
-            "SELECT TABLE_NAME, COLUMN_NAME
-             FROM information_schema.COLUMNS
-             WHERE TABLE_SCHEMA = ?
-               AND TABLE_NAME <> 'products'
-               AND COLUMN_NAME = 'product_id'",
-            [$database]
-        ));
-
-        return $references
-            ->merge($productIdColumns)
-            ->unique(fn ($reference) => $reference->TABLE_NAME.'.'.$reference->COLUMN_NAME)
-            ->contains(function ($reference) use ($product) {
-                return Schema::hasTable($reference->TABLE_NAME)
-                    && Schema::hasColumn($reference->TABLE_NAME, $reference->COLUMN_NAME)
-                    && DB::table($reference->TABLE_NAME)->where($reference->COLUMN_NAME, $product->id)->exists();
-            });
-    }
-
     private function nextItemNo(bool $lock = false): string
     {
-        $query = Product::query();
+        $query = Product::withTrashed();
 
         if ($lock) {
             $query->lockForUpdate();

@@ -137,7 +137,7 @@ class SalesOrderController extends Controller
             DB::transaction(function () use ($request, $salesOrder, $user) {
             if ($salesOrder->status === 'Confirmed') {
                 foreach ($salesOrder->items as $oldItem) {
-                    Product::query()->where('id', $oldItem->product_id)->increment('qty', (float) $oldItem->ordered_qty);
+                    Product::withTrashed()->where('id', $oldItem->product_id)->increment('qty', (float) $oldItem->ordered_qty);
                 }
             }
 
@@ -230,7 +230,7 @@ class SalesOrderController extends Controller
         if ($salesOrder->status === 'Confirmed') {
             return DB::transaction(function () use ($salesOrder, $request) {
                 foreach ($salesOrder->items as $item) {
-                    Product::query()->where('id', $item->product_id)->increment('qty', (float) $item->ordered_qty);
+                    Product::withTrashed()->where('id', $item->product_id)->increment('qty', (float) $item->ordered_qty);
                 }
 
                 $salesOrder->status = 'Cancelled';

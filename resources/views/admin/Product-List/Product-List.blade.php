@@ -401,7 +401,7 @@
                                 <strong data-product-delete-item-no>--</strong>
                                 <span data-product-delete-name>--</span>
                             </div>
-                            <p class="product-delete-modal__warning">This action will remove the selected product from the inventory. Product transaction references are checked before deletion.</p>
+                            <p class="product-delete-modal__warning">This action will remove the selected product from the active inventory list while keeping existing sales and inventory history intact.</p>
                             <p class="product-delete-modal__error" data-product-delete-error hidden></p>
                         </div>
                         <footer class="product-delete-modal__footer">
