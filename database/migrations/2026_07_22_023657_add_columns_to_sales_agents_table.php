@@ -8,18 +8,41 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasTable('sales_agents')) {
+            return;
+        }
+
         Schema::table('sales_agents', function (Blueprint $table) {
-            $table->decimal('commission_percentage', 5, 2)->default(0.00)->after('phone');
-            $table->date('date_started')->nullable()->after('commission_percentage');
-            $table->softDeletes()->after('updated_at');
+            if (! Schema::hasColumn('sales_agents', 'commission_percentage')) {
+                $table->decimal('commission_percentage', 5, 2)->default(0.00)->after('phone');
+            }
+
+            if (! Schema::hasColumn('sales_agents', 'date_started')) {
+                $table->date('date_started')->nullable()->after('commission_percentage');
+            }
+
+            if (! Schema::hasColumn('sales_agents', 'deleted_at')) {
+                $table->softDeletes()->after('updated_at');
+            }
         });
     }
 
     public function down(): void
     {
+        if (! Schema::hasTable('sales_agents')) {
+            return;
+        }
+
         Schema::table('sales_agents', function (Blueprint $table) {
-            $table->dropSoftDeletes();
-            $table->dropColumn(['commission_percentage', 'date_started']);
+            if (Schema::hasColumn('sales_agents', 'deleted_at')) {
+                $table->dropSoftDeletes();
+            }
+
+            foreach (['commission_percentage', 'date_started'] as $column) {
+                if (Schema::hasColumn('sales_agents', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };
