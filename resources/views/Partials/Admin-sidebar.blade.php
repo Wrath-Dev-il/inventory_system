@@ -41,13 +41,13 @@
             <span class="admin-sidebar__label">Dashboard</span>
         </a>
 
-        <div class="admin-sidebar__group {{ $systemSecurityActive ? 'is-active' : '' }}" data-sidebar-group>
+        <div class="admin-sidebar__group {{ $systemSecurityActive ? 'is-active is-open' : '' }}" data-sidebar-group>
             <button
                 type="button"
                 class="admin-sidebar__link admin-sidebar__dropdown {{ $systemSecurityActive ? 'is-active' : '' }}"
                 data-sidebar-toggle
                 data-tooltip="System Security"
-                aria-expanded="false"
+                aria-expanded="{{ $systemSecurityActive ? 'true' : 'false' }}"
                 aria-controls="admin-system-security-menu"
             >
                 <span class="admin-sidebar__icon-box">
@@ -106,13 +106,13 @@
             </div>
         </div>
 
-        <div class="admin-sidebar__group {{ $masterListActive ? 'is-active' : '' }}" data-sidebar-group>
+        <div class="admin-sidebar__group {{ $masterListActive ? 'is-active is-open' : '' }}" data-sidebar-group>
             <button
                 type="button"
                 class="admin-sidebar__link admin-sidebar__dropdown {{ $masterListActive ? 'is-active' : '' }}"
                 data-sidebar-toggle
                 data-tooltip="Master List"
-                aria-expanded="false"
+                aria-expanded="{{ $masterListActive ? 'true' : 'false' }}"
                 aria-controls="admin-master-list-menu"
             >
                 <span class="admin-sidebar__icon-box">
@@ -186,13 +186,13 @@
             </div>
         </div>
 
-        <div class="admin-sidebar__group {{ $inventoryActive ? 'is-active' : '' }}" data-sidebar-group>
+        <div class="admin-sidebar__group {{ $inventoryActive ? 'is-active is-open' : '' }}" data-sidebar-group>
             <button
                 type="button"
                 class="admin-sidebar__link admin-sidebar__dropdown {{ $inventoryActive ? 'is-active' : '' }}"
                 data-sidebar-toggle
                 data-tooltip="Inventory Management"
-                aria-expanded="false"
+                aria-expanded="{{ $inventoryActive ? 'true' : 'false' }}"
                 aria-controls="admin-inventory-menu"
             >
                 <span class="admin-sidebar__icon-box">
@@ -220,13 +220,13 @@
             </div>
         </div>
 
-        <div class="admin-sidebar__group {{ $salesActive ? 'is-active' : '' }}" data-sidebar-group>
+        <div class="admin-sidebar__group {{ $salesActive ? 'is-active is-open' : '' }}" data-sidebar-group>
             <button
                 type="button"
                 class="admin-sidebar__link admin-sidebar__dropdown {{ $salesActive ? 'is-active' : '' }}"
                 data-sidebar-toggle
                 data-tooltip="Sales"
-                aria-expanded="false"
+                aria-expanded="{{ $salesActive ? 'true' : 'false' }}"
                 aria-controls="admin-sales-menu"
             >
                 <span class="admin-sidebar__icon-box">
