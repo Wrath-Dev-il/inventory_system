@@ -223,7 +223,7 @@
         var pagination = data.pagination || {};
 
         if (els.viewCustomerInfo) {
-            els.viewCustomerInfo.textContent = customers.length + ' customer(s) assigned';
+            els.viewCustomerInfo.textContent = (pagination.total || customers.length) + ' customer(s) assigned';
         }
 
         if (customers.length === 0) {

@@ -145,14 +145,13 @@
                                         <th>Tin</th>
                                         <th>Price Reference</th>
                                         <th>%Disc</th>
-                                        <th>Sales Agent</th>
                                         <th>Salesman</th>
                                         <th>Address</th>
                                         <th>Date Started</th>
                                         <th>Terms</th>
                                     </tr>
                                     <tr class="admin-customers__filters">
-                                        @foreach (['customer_no' => 'No', 'customer_name' => 'Customer Name', 'tin' => 'Tin', 'price_reference' => 'Price Reference', 'discount_percent' => '%Disc', 'sales_agent' => 'Sales Agent', 'salesman' => 'Salesman', 'address' => 'Address', 'date_started' => 'Date Started', 'terms' => 'Terms'] as $column => $label)
+                                        @foreach (['customer_no' => 'No', 'customer_name' => 'Customer Name', 'tin' => 'Tin', 'price_reference' => 'Price Reference', 'discount_percent' => '%Disc', 'salesman' => 'Salesman', 'address' => 'Address', 'date_started' => 'Date Started', 'terms' => 'Terms'] as $column => $label)
                                             <th>
                                                 <input form="customer-column-search-form" type="search" name="search[{{ $column }}]" value="{{ $searches[$column] ?? '' }}" aria-label="Search {{ $label }}" placeholder="Search" data-customer-column-search>
                                             </th>
@@ -172,15 +171,14 @@
                                             <td data-customer-editable data-field="tin" data-value="{{ $customer['tin'] }}">{{ filled($customer['tin']) ? $customer['tin'] : '--' }}</td>
                                             <td data-customer-editable data-type="price-reference" data-field="price_reference" data-value="{{ $customer['price_reference'] }}"><span class="customer-reference-badge customer-reference-badge--{{ $customer['price_reference'] }}">{{ $customer['price_reference_label'] }}</span></td>
                                             <td data-customer-editable data-type="number" data-field="discount_percent" data-value="{{ $customer['discount_percent'] }}">{{ number_format($customer['discount_percent'] ?? 0, 2) }}%</td>
-                                            <td data-customer-editable data-type="sales-agent" data-field="sales_agent_id" data-value="{{ $customer['sales_agent_id'] }}">{{ filled($customer['sales_agent']) ? $customer['sales_agent'] : '--' }}</td>
-                                            <td data-customer-editable data-field="salesman_name" data-value="{{ $customer['salesman_name'] }}">{{ filled($customer['salesman_name']) ? $customer['salesman_name'] : '--' }}</td>
+                                            <td data-customer-editable data-type="sales-agent" data-field="sales_agent_id" data-value="{{ $customer['sales_agent_id'] }}">{{ filled($customer['salesman_name']) ? $customer['salesman_name'] : '--' }}</td>
                                             <td data-customer-editable data-field="address" data-value="{{ $customer['address'] }}">{{ filled($customer['address']) ? $customer['address'] : '--' }}</td>
                                             <td data-customer-editable data-type="date" data-field="date_started" data-value="{{ $customer['date_started'] }}">{{ filled($customer['date_started']) ? $customer['date_started'] : '--' }}</td>
                                             <td data-customer-editable data-field="terms" data-value="{{ $customer['terms'] }}">{{ filled($customer['terms']) ? $customer['terms'] : '--' }}</td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="10" class="admin-customers__table-empty">No customers match the current search.</td>
+                                            <td colspan="9" class="admin-customers__table-empty">No customers match the current search.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -235,7 +233,15 @@
                                 </label>
                             </fieldset>
                             <label class="customer-field"><span>%Disc <em data-discount-hint></em></span><input type="number" name="discount_percent" min="0" max="100" step="0.01" value="0"></label>
-                            <label class="customer-field"><span>Salesman</span><input type="text" name="salesman_name" placeholder="Enter salesman name"></label>
+                            <label class="customer-field">
+                                <span>Salesman</span>
+                                <select name="sales_agent_id">
+                                    <option value="">Select salesman</option>
+                                    @foreach ($salesAgents as $agent)
+                                        <option value="{{ $agent['id'] }}">{{ $agent['name'] }} ({{ $agent['agent_no'] }})</option>
+                                    @endforeach
+                                </select>
+                            </label>
                             <label class="customer-field"><span>Date Started As Customer</span><input type="date" name="date_started"></label>
                             <label class="customer-field"><span>Terms</span><input type="text" name="terms" placeholder="Cash, 7 Days, 30 Days, or agreed terms"></label>
                             <label class="customer-field">
@@ -285,7 +291,6 @@
                             <section class="customer-detail-section">
                                 <h3>Sales Information</h3>
                                 <div class="customer-detail-grid">
-                                    <div><span>Sales Agent</span><strong data-customer-detail="sales_agent">--</strong></div>
                                     <div><span>Salesman</span><strong data-customer-detail="salesman">--</strong></div>
                                     <div><span>Date Started As Customer</span><strong data-customer-detail="date_started">--</strong></div>
                                     <div><span>Terms</span><strong data-customer-detail="terms">--</strong></div>

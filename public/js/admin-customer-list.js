@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setDetail('price_reference_label', displayText(customer.price_reference_label));
         setDetail('discount_percent', formatPercent(customer.discount_percent));
         setDetail('sales_agent', displayText(customer.sales_agent));
-        setDetail('salesman', displayText(customer.salesman_name));
+        setDetail('salesman', displayText(customer.salesman_name || customer.sales_agent));
         setDetail('date_started', displayText(customer.date_started));
         setDetail('terms', displayText(customer.terms));
         setDetail('address', displayText(customer.address));
@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return agent ? agent.name : '--';
     }
 
-    function formatCellValue(field, value) {
+    function formatCellValue(field, value, fallbackValue) {
         if (field === 'price_reference') {
             const reference = value === 'yellow' ? 'yellow' : 'green';
             return `<span class="customer-reference-badge customer-reference-badge--${reference}">${referenceLabel(reference)}</span>`;
@@ -474,19 +474,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (field === 'sales_agent_id') {
-            return displayText(salesAgentName(value));
+            const agent = salesAgentName(value);
+            return displayText(agent !== '--' ? agent : fallbackValue);
         }
 
         return displayText(value);
     }
 
-    function setCellDisplay(cell, field, value) {
+    function setCellDisplay(cell, field, value, fallbackValue) {
         if (field === 'price_reference') {
-            cell.innerHTML = formatCellValue(field, value);
+            cell.innerHTML = formatCellValue(field, value, fallbackValue);
             return;
         }
 
-        cell.textContent = formatCellValue(field, value);
+        cell.textContent = formatCellValue(field, value, fallbackValue);
     }
 
     function createEditor(cell, field, type, originalValue) {
@@ -630,7 +631,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             cell.dataset.value = value ?? '';
             delete cell.dataset.pendingValue;
-            setCellDisplay(cell, field, value);
+            setCellDisplay(cell, field, value, field === 'sales_agent_id' ? (customer.salesman_name || customer.sales_agent) : undefined);
             cell.classList.remove('is-changed');
         });
     }

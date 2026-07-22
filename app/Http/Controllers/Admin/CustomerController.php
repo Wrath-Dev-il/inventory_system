@@ -24,7 +24,6 @@ class CustomerController extends Controller
         'tin',
         'price_reference',
         'discount_percent',
-        'sales_agent',
         'salesman',
         'address',
         'date_started',
@@ -37,7 +36,6 @@ class CustomerController extends Controller
         'price_reference',
         'discount_percent',
         'sales_agent_id',
-        'salesman_name',
         'address',
         'date_started',
         'terms',
@@ -241,7 +239,13 @@ class CustomerController extends Controller
             }
 
             if ($column === 'salesman') {
-                $query->where('salesman_name', 'like', '%'.$term.'%');
+                $query->where(function (Builder $nested) use ($term) {
+                    $nested->where('salesman_name', 'like', '%'.$term.'%')
+                        ->orWhereHas('salesAgent', function (Builder $agent) use ($term) {
+                            $agent->where('name', 'like', '%'.$term.'%')
+                                ->orWhere('agent_no', 'like', '%'.$term.'%');
+                        });
+                });
                 continue;
             }
 
@@ -270,14 +274,16 @@ class CustomerController extends Controller
         $discount = $referenceCode === 'yellow'
             ? 20.0
             : ($this->numericValue($payload['discount_percent'] ?? null) ?? 0.0);
+        $salesAgentId = $this->nullableInteger($payload['sales_agent_id'] ?? null);
 
         return [
             'customer_name' => trim((string) $payload['customer_name']),
             'tin' => $this->nullableString($payload['tin'] ?? null),
             'price_reference_id' => $priceReference->id,
             'discount_percent' => $discount,
-            'sales_agent_id' => $payload['sales_agent_id'] ?? null,
-            'salesman_name' => $this->nullableString($payload['salesman_name'] ?? null),
+            'sales_agent_id' => $salesAgentId,
+            'salesman_name' => $this->salesmanNameForAgent($salesAgentId)
+                ?? $this->nullableString($payload['salesman_name'] ?? null),
             'date_started' => $payload['date_started'] ?? null,
             'terms' => $this->nullableString($payload['terms'] ?? null),
         ];
@@ -308,7 +314,9 @@ class CustomerController extends Controller
         }
 
         if ($field === 'sales_agent_id') {
-            $customer->sales_agent_id = $value !== null && $value !== '' ? (int) $value : null;
+            $salesAgentId = $this->nullableInteger($value);
+            $customer->sales_agent_id = $salesAgentId;
+            $customer->salesman_name = $this->salesmanNameForAgent($salesAgentId);
             return;
         }
     }
@@ -399,7 +407,7 @@ class CustomerController extends Controller
             'sales_agent_id' => $customer->sales_agent_id,
             'sales_agent' => $agent?->name,
             'sales_agent_no' => $agent?->agent_no,
-            'salesman_name' => $customer->salesman_name,
+            'salesman_name' => $customer->salesman_name ?: $agent?->name,
             'address' => $address?->formatted_address,
             'date_started' => $customer->date_started?->toDateString(),
             'terms' => $customer->terms,
@@ -475,6 +483,24 @@ class CustomerController extends Controller
         }
 
         return is_numeric($value) ? (float) $value : null;
+    }
+
+    private function nullableInteger(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (int) $value;
+    }
+
+    private function salesmanNameForAgent(?int $salesAgentId): ?string
+    {
+        if (! $salesAgentId) {
+            return null;
+        }
+
+        return SalesAgent::query()->whereKey($salesAgentId)->value('name');
     }
 
     private function nullableString(mixed $value): ?string

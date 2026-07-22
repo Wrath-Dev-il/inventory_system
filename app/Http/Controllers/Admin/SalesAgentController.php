@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class SalesAgentController extends Controller
 {
@@ -84,13 +85,15 @@ class SalesAgentController extends Controller
             ->with(['priceReference', 'salesAgent'])
             ->orderBy('customer_name')
             ->paginate($perPage);
+        $hasSalesOrders = Schema::hasTable('sales_orders');
 
-        $customers->getCollection()->transform(function (Customer $customer) {
-            $outstanding = DB::table('sales_orders')
-                ->where('customer_id', $customer->id)
-                ->whereIn('status', ['Pending', 'Confirmed'])
-                ->where('payment_status', '!=', 'Paid')
-                ->sum('total_with_vat');
+        $customers->getCollection()->transform(function (Customer $customer) use ($hasSalesOrders) {
+            $orders = $hasSalesOrders
+                ? DB::table('sales_orders')
+                    ->where('customer_id', $customer->id)
+                    ->whereIn('status', ['Pending', 'Confirmed'])
+                    ->where('payment_status', '!=', 'Paid')
+                : null;
 
             return [
                 'id' => $customer->id,
@@ -98,12 +101,8 @@ class SalesAgentController extends Controller
                 'customer_no' => $customer->customer_no,
                 'price_reference' => strtolower($customer->priceReference?->code ?? 'green'),
                 'price_reference_label' => $customer->priceReference?->name ?? 'Green',
-                'outstanding_invoices' => DB::table('sales_orders')
-                    ->where('customer_id', $customer->id)
-                    ->whereIn('status', ['Pending', 'Confirmed'])
-                    ->where('payment_status', '!=', 'Paid')
-                    ->count(),
-                'outstanding_total' => (float) $outstanding,
+                'outstanding_invoices' => $orders ? (clone $orders)->count() : 0,
+                'outstanding_total' => $orders ? (float) (clone $orders)->sum('total_with_vat') : 0.0,
             ];
         });
 
