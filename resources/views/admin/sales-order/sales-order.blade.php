@@ -101,21 +101,9 @@
                                     <td><span class="so-badge so-badge--{{ $order->status }}">{{ $order->status }}</span></td>
                                     <td><span class="so-badge so-badge--{{ $order->payment_status }}">{{ $order->payment_status }}</span></td>
                                     <td class="so-actions-cell">
-                                        <button type="button" class="so-action-btn" data-so-view title="View sales order">
-                                            <svg viewBox="0 0 24 24" fill="none"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
-                                            <span>View</span>
-                                        </button>
                                         <button type="button" class="so-action-btn" data-so-print title="Print sales order">
                                             <svg viewBox="0 0 24 24" fill="none"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2"/><path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2"/></svg>
                                             <span>Print</span>
-                                        </button>
-                                        <button type="button" class="so-action-btn" data-so-edit title="Edit sales order">
-                                            <svg viewBox="0 0 24 24" fill="none"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-                                            <span>Edit</span>
-                                        </button>
-                                        <button type="button" class="so-action-btn so-action-btn--danger" data-so-delete title="{{ $order->status === 'Cancelled' ? 'Delete sales order' : 'Cancel sales order' }}">
-                                            <svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15" stroke="currentColor" stroke-width="2"/><path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2"/></svg>
-                                            <span>{{ $order->status === 'Cancelled' ? 'Delete' : ($order->status === 'Confirmed' ? 'Cancel' : 'Delete') }}</span>
                                         </button>
                                     </td>
                                 </tr>
@@ -196,6 +184,9 @@
                         <input type="search" class="so-table__filter-input" style="width:260px;" placeholder="Search selected items..." data-so-items-search>
                     </div>
 
+                    <div data-so-price-ref-display style="display:none;margin-bottom:12px;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:13px;color:#166534;">
+                        <strong data-so-price-ref-label></strong> &middot; Discount: <strong data-so-discount-percent-display>0.00%</strong>
+                    </div>
                     <div data-so-items-container>
                         <p style="color:#94a3b8;text-align:center;padding:24px;">No items selected yet. Click "Select Items" to add products.</p>
                     </div>
@@ -378,26 +369,6 @@
             </div>
             <div class="so-modal__footer" style="justify-content:center;">
                 <button type="button" class="so-btn so-btn--secondary" data-so-print-close>Close</button>
-            </div>
-        </div>
-    </div>
-
-    {{-- DELETE/CANCEL CONFIRMATION MODAL --}}
-    <div class="so-modal" data-so-delete-modal hidden>
-        <div class="so-modal__backdrop" data-so-delete-close></div>
-        <div class="so-modal__dialog so-modal__dialog--small">
-            <div class="so-modal__body">
-                <div class="so-confirm-icon so-confirm-icon--error">
-                    <svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2"/><path d="m10.29 3.86-8.4 14A2 2 0 0 0 3.6 21h16.8a2 2 0 0 0 1.71-3.14l-8.4-14a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2"/></svg>
-                </div>
-                <div class="so-confirm-body">
-                    <h3 data-so-delete-title>Delete Sales Order?</h3>
-                    <p data-so-delete-message>This action cannot be undone.</p>
-                </div>
-            </div>
-            <div class="so-modal__footer" style="justify-content:center;">
-                <button type="button" class="so-btn so-btn--secondary" data-so-delete-close>Cancel</button>
-                <button type="button" class="so-btn so-btn--danger" data-so-delete-proceed>Delete</button>
             </div>
         </div>
     </div>

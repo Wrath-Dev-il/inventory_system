@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\SalesListing;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
 use App\Models\SalesOrderSequence;
@@ -59,12 +60,15 @@ class SalesOrderService
         $sellingPrice = (float) $product->selling_price;
         $unitPriceWithoutVat = $this->calculateWithoutVat($sellingPrice);
 
+        $discountMultiplier = $discountPercent / 100;
+        $discountAmount = round($sellingPrice * $discountMultiplier, 2);
+        $discountedUnitPrice = round($sellingPrice * (1 - $discountMultiplier), 2);
+
         $lineTotalWithVat = round($orderedQty * $sellingPrice, 2);
         $lineTotalWithoutVat = round($orderedQty * $unitPriceWithoutVat, 2);
         $vatAmount = $this->calculateVatAmount($lineTotalWithVat, $lineTotalWithoutVat);
 
         if ($discountPercent > 0) {
-            $discountMultiplier = $discountPercent / 100;
             $lineTotalWithVat = round($lineTotalWithVat * (1 - $discountMultiplier), 2);
             $lineTotalWithoutVat = round($lineTotalWithoutVat * (1 - $discountMultiplier), 2);
             $vatAmount = $this->calculateVatAmount($lineTotalWithVat, $lineTotalWithoutVat);
@@ -79,6 +83,8 @@ class SalesOrderService
             'ordered_qty' => $orderedQty,
             'selling_price_snapshot' => $sellingPrice,
             'discount_percent_snapshot' => $discountPercent,
+            'discount_amount_snapshot' => $discountAmount,
+            'discounted_unit_price_snapshot' => $discountedUnitPrice,
             'unit_price_without_vat' => $unitPriceWithoutVat,
             'line_total_without_vat' => $lineTotalWithoutVat,
             'vat_amount' => $vatAmount,
@@ -107,6 +113,28 @@ class SalesOrderService
             'vat_amount' => $vatAmount,
             'total_ordered_qty' => round($totalQty, 2),
         ];
+    }
+
+    private function calculateDueDateForListing(SalesOrder $order): ?string
+    {
+        $billingDate = $order->order_date?->toDateString();
+        $terms = $order->terms_snapshot;
+
+        if ($billingDate === null) {
+            return null;
+        }
+
+        $normalized = $terms !== null ? strtolower(trim($terms)) : '';
+
+        if ($normalized === 'cash' || $normalized === '') {
+            return $billingDate;
+        }
+
+        if (preg_match('/^(\d+)\s*days?$/i', $normalized, $matches)) {
+            return now()->parse($billingDate)->addDays((int) $matches[1])->toDateString();
+        }
+
+        return $billingDate;
     }
 
     public function createSalesOrder(array $data, Login $user, array $items): SalesOrder
@@ -166,6 +194,15 @@ class SalesOrderService
                 'to_status' => 'Confirmed',
                 'changed_by' => $user->login_ID,
                 'remarks' => 'Sales Order created',
+            ]);
+
+            SalesListing::query()->create([
+                'sales_order_id' => $order->id,
+                'billing_date' => $order->order_date?->toDateString(),
+                'due_date' => $this->calculateDueDateForListing($order),
+                'transaction_type' => 'vat_inc',
+                'initial_payment_status' => 'unpaid',
+                'final_payment_status' => 'unpaid',
             ]);
 
             return $order->fresh(['items', 'customer', 'preparedBy']);

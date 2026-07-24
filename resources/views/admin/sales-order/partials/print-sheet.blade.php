@@ -2,15 +2,14 @@
     $isVat = ($mode ?? 'vat') === 'vat';
     $items = $order->items ?? collect();
     $rowCount = max(25, $items->count());
-    $totalAmount = (float) $order->total_with_vat;
-    $vatAmount = round(($totalAmount / 1.12) * 0.12, 2);
-    $vatExclusiveTotal = round($totalAmount - $vatAmount, 2);
-    $displayTotal = $isVat ? $vatExclusiveTotal : $totalAmount;
+    $totalWithVat = (float) $order->total_with_vat;
+    $vatExclusive = (float) $order->vat_exclusive_total;
+    $vatAmt = (float) $order->vat_amount;
+    $displayTotal = $isVat ? $vatExclusive : $totalWithVat;
     $docTitle = $isVat ? 'A-Sales Order' : 'Sales Invoice';
     $transactionType = $isVat ? 'VAT EX' : 'NO VAT';
-    $unitHeader = $isVat ? 'VAT Ex Unit Price' : 'Unit Price';
-    $totalHeader = $isVat ? 'VAT Ex Total Price' : 'Total Price';
     $totalLabel = $isVat ? 'VAT EX TOTAL' : 'TOTAL AMOUNT';
+    $fmt = fn($v) => '₱' . number_format((float) $v, 2);
 @endphp
 
 <main class="sheet">
@@ -61,32 +60,36 @@
     <table class="order-table">
         <thead>
             <tr>
-                <th style="width: 13mm;">Item No:</th>
+                <th style="width: 10mm;">Item No:</th>
                 <th>Item Description</th>
-                <th style="width: 13mm;">Qty</th>
-                <th style="width: 15mm;">Unit</th>
-                <th style="width: 23mm;">{{ $unitHeader }}</th>
-                <th style="width: 25mm;">{{ $totalHeader }}</th>
+                <th style="width: 10mm;">Qty</th>
+                <th style="width: 12mm;">Unit</th>
+                <th style="width: 10mm;">Disc%</th>
+                <th style="width: 22mm;">Unit Price</th>
+                <th style="width: 22mm;">Total Price</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($items as $index => $item)
                 @php
-                    $unitPrice = $isVat ? (float) $item->unit_price_without_vat : (float) $item->selling_price_snapshot;
-                    $lineTotal = $isVat ? (float) $item->line_total_without_vat : (float) $item->line_total_with_vat;
+                    $unitPrice = (float) ($item->selling_price_snapshot ?? 0);
+                    $lineTotal = (float) ($item->line_total_with_vat ?? 0);
+                    $discPct = (float) ($item->discount_percent_snapshot ?? 0);
                 @endphp
                 <tr>
                     <td class="center">{{ $index + 1 }}</td>
                     <td class="desc">{{ strtoupper(trim(($item->product_name_snapshot ?? '') . ' ' . ($item->brand_snapshot ?? ''))) }}</td>
-                    <td class="center">{{ number_format($item->ordered_qty, 0) }}</td>
+                    <td class="center">{{ number_format($item->ordered_qty, 2) }}</td>
                     <td class="center">{{ $item->unit_snapshot ?? '' }}</td>
-                    <td class="right">{{ number_format($unitPrice, 2) }}</td>
-                    <td class="right">{{ number_format($lineTotal, 2) }}</td>
+                    <td class="center">{{ $discPct > 0 ? number_format($discPct, 2) . '%' : '' }}</td>
+                    <td class="right">{{ $fmt($unitPrice) }}</td>
+                    <td class="right">{{ $fmt($lineTotal) }}</td>
                 </tr>
             @endforeach
             @for ($line = $items->count() + 1; $line <= $rowCount; $line++)
                 <tr>
                     <td class="center"></td>
+                    <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
@@ -101,8 +104,14 @@
         <div class="total-box">
             <div class="total-row total-row--green">
                 <div>{{ $totalLabel }}</div>
-                <div class="amount">{{ number_format($displayTotal, 2) }}</div>
+                <div class="amount">{{ $fmt($displayTotal) }}</div>
             </div>
+            @if ($isVat)
+                <div class="total-row">
+                    <div>VAT AMOUNT</div>
+                    <div class="amount">{{ $fmt($vatAmt) }}</div>
+                </div>
+            @endif
             <div class="total-row">
                 <div class="sign-label">Prepared By:</div>
                 <div></div>

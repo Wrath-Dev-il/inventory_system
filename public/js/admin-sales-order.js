@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let selectedProductIds = new Set();
     let currentStep = 1;
     let previewOrder = null;
+    let discountPercent = 0;
     const VAT_RATE = 0.12;
     const VAT_MULTIPLIER = 1.12;
 
@@ -85,12 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const printModalClose = root.querySelectorAll('[data-so-print-close]');
     const printActions = root.querySelectorAll('[data-so-print-action]');
 
-    // Delete modal
-    const deleteModal = root.querySelector('[data-so-delete-modal]');
-    const deleteClose = root.querySelectorAll('[data-so-delete-close]');
-    const deleteTitle = root.querySelector('[data-so-delete-title]');
-    const deleteMessage = root.querySelector('[data-so-delete-message]');
-    const deleteProceed = root.querySelector('[data-so-delete-proceed]');
+    // (Delete modal removed — main table no longer shows delete action)
 
     // Price filter
     const priceFilter = root.querySelector('[data-so-price-filter]');
@@ -107,6 +103,11 @@ document.addEventListener('DOMContentLoaded', function () {
     function lineTotal(item) { return Math.round(Number(item.ordered_qty || 0) * Number(item.selling_price || 0) * 100) / 100; }
     function vatExclusiveUnit(item) { return calcWithoutVat(Number(item.selling_price || 0)); }
     function vatExclusiveLine(item) { return Math.round(Number(item.ordered_qty || 0) * vatExclusiveUnit(item) * 100) / 100; }
+    function discountedUnitPrice(item) { var sp = Number(item.selling_price || 0); var rate = discountPercent / 100; return Math.round(sp * (1 - rate) * 100) / 100; }
+    function discountAmountPerUnit(item) { var sp = Number(item.selling_price || 0); var rate = discountPercent / 100; return Math.round(sp * rate * 100) / 100; }
+    function discountedLineTotal(item) { return Math.round(Number(item.ordered_qty || 0) * discountedUnitPrice(item) * 100) / 100; }
+    function vatExclusiveDiscountedUnit(item) { return calcWithoutVat(discountedUnitPrice(item)); }
+    function vatExclusiveDiscountedLine(item) { return Math.round(Number(item.ordered_qty || 0) * vatExclusiveDiscountedUnit(item) * 100) / 100; }
     function availableQty(item) { return Number(item.available_qty ?? item.qty ?? 0); }
     function stockIssue(item) {
         var ordered = Number(item.ordered_qty || 0);
@@ -122,6 +123,24 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function reloadPage() { window.location.reload(); }
+
+    function updatePriceRefDisplay() {
+        var display = root.querySelector('[data-so-price-ref-display]');
+        var label = root.querySelector('[data-so-price-ref-label]');
+        var discDisplay = root.querySelector('[data-so-discount-percent-display]');
+        if (!display || !label || !discDisplay) return;
+        if (selectedCustomer && discountPercent > 0) {
+            display.style.display = 'block';
+            label.textContent = (selectedCustomer.price_reference_label || 'Price Reference') + ' — ' + (selectedCustomer.price_reference || '').toUpperCase();
+            discDisplay.textContent = discountPercent.toFixed(2) + '%';
+        } else if (selectedCustomer && discountPercent === 0) {
+            display.style.display = 'block';
+            label.textContent = (selectedCustomer.price_reference_label || 'Price Reference') + ' — ' + (selectedCustomer.price_reference || '').toUpperCase();
+            discDisplay.textContent = '0.00% (No discount configured)';
+        } else {
+            display.style.display = 'none';
+        }
+    }
 
     // ========== STEP MANAGEMENT ==========
     function goToStep(step) {
@@ -143,6 +162,7 @@ document.addEventListener('DOMContentLoaded', function () {
         selectedItems = [];
         selectedProductIds = new Set();
         previewOrder = null;
+        discountPercent = 0;
         currentStep = 1;
         salesChannel.value = '';
         customerDisplay.innerHTML = '<button type="button" class="so-btn so-btn--secondary" data-so-select-customer><svg viewBox="0 0 24 24" fill="none" width="16" height="16"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 21a8 8 0 0 1 16 0" stroke="currentColor" stroke-width="2"/></svg> Select Customer</button>';
@@ -215,15 +235,27 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function selectCustomer(c) {
-        if (selectedCustomer && selectedCustomer.id === c.id) { selectedCustomer = null; }
-        else { selectedCustomer = c; }
+        if (selectedCustomer && selectedCustomer.id === c.id) {
+            selectedCustomer = null;
+            discountPercent = 0;
+        } else {
+            selectedCustomer = c;
+            discountPercent = Number(c.discount_percent) || 0;
+            if (selectedItems.length > 0) {
+                selectedItems.forEach(function (item) {
+                    item.discount_percent = discountPercent;
+                });
+                renderSelectedItems();
+                if (currentStep === 3) buildReview();
+            }
+        }
         updateCustomerDisplay();
+        updatePriceRefDisplay();
     }
 
     function updateCustomerDisplay() {
         if (selectedCustomer) {
-            customerDisplay.innerHTML = '<div class="so-customer-selected"><div class="so-customer-selected__info"><div class="so-customer-selected__name">' + escapeHtml(selectedCustomer.customer_name) + '</div><div class="so-customer-selected__detail">' + escapeHtml(selectedCustomer.customer_no) + ' &middot; ' + escapeHtml(selectedCustomer.price_reference_label) + ' &middot; ' + selectedCustomer.discount_percent + '% disc</div></div><button type="button" class="so-btn so-btn--sm so-btn--danger" data-so-clear-customer>Remove</button></div>';
-            // clear-customer handled via delegation above
+            customerDisplay.innerHTML = '<div class="so-customer-selected"><div class="so-customer-selected__info"><div class="so-customer-selected__name">' + escapeHtml(selectedCustomer.customer_name) + '</div><div class="so-customer-selected__detail">' + escapeHtml(selectedCustomer.customer_no) + ' &middot; ' + escapeHtml(selectedCustomer.price_reference_label) + ' &middot; ' + (selectedCustomer.discount_percent || 0).toFixed(2) + '% disc</div></div><button type="button" class="so-btn so-btn--sm so-btn--danger" data-so-clear-customer>Remove</button></div>';
         } else {
             customerDisplay.innerHTML = '<button type="button" class="so-btn so-btn--secondary" data-so-select-customer><svg viewBox="0 0 24 24" fill="none" width="16" height="16"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 21a8 8 0 0 1 16 0" stroke="currentColor" stroke-width="2"/></svg> Select Customer</button>';
             customerDisplay.querySelector('[data-so-select-customer]').addEventListener('click', function () { openModal(customerModal); loadCustomers(1); });
@@ -294,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function () {
             selectedItems = selectedItems.filter(function (i) { return i.product_id !== p.id; });
         } else {
             selectedProductIds.add(p.id);
-            selectedItems.push({ product_id: p.id, item_no: p.item_no, product: p.product, brand: p.brand, unit: p.unit, qty: p.qty, available_qty: p.qty, selling_price: p.selling_price, ordered_qty: 1, discount_percent: 0 });
+            selectedItems.push({ product_id: p.id, item_no: p.item_no, product: p.product, brand: p.brand, unit: p.unit, qty: p.qty, available_qty: p.qty, selling_price: p.selling_price, ordered_qty: 1, discount_percent: discountPercent });
         }
         loadProducts(parseInt(productPagination.querySelector('button[style*="font-weight:700"]')?.dataset.pp) || 1, getProductSearchData(), productSearch.value);
         renderSelectedItems();
@@ -319,12 +351,25 @@ document.addEventListener('DOMContentLoaded', function () {
                        (i.unit && i.unit.toLowerCase().includes(searchTerm));
             });
         }
-        var html = '<div class="so-table-shell"><table class="so-table"><thead><tr><th>Item No.</th><th>Product</th><th>Brand</th><th>Unit</th><th>Available QTY</th><th>Order QTY</th><th>Selling Price</th><th>Total</th><th>Action</th></tr><tr class="admin-table__filters"><th><input type="search" class="so-table__filter-input" placeholder="Search" data-so-item-filter="item_no"></th><th><input type="search" class="so-table__filter-input" placeholder="Search" data-so-item-filter="product"></th><th><input type="search" class="so-table__filter-input" placeholder="Search" data-so-item-filter="brand"></th><th><input type="search" class="so-table__filter-input" placeholder="Search" data-so-item-filter="unit"></th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody>';
+        var html = '<div class="so-table-shell"><table class="so-table"><thead><tr><th>Item No.</th><th>Product</th><th>Brand</th><th>Unit</th><th>Available QTY</th><th>Order QTY</th><th>Discount</th><th>Selling Price</th><th>Selling Price After Discount</th><th>Discounted Total</th><th>Action</th></tr><tr class="admin-table__filters"><th><input type="search" class="so-table__filter-input" placeholder="Search" data-so-item-filter="item_no"></th><th><input type="search" class="so-table__filter-input" placeholder="Search" data-so-item-filter="product"></th><th><input type="search" class="so-table__filter-input" placeholder="Search" data-so-item-filter="brand"></th><th><input type="search" class="so-table__filter-input" placeholder="Search" data-so-item-filter="unit"></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody>';
         filtered.forEach(function (entry) {
             var item = entry.item;
             var idx = entry.index;
             var issue = stockIssue(item);
-            html += '<tr class="' + (issue ? 'so-item-row--invalid' : '') + '"><td>' + escapeHtml(item.item_no) + '</td><td>' + escapeHtml(item.product) + '</td><td>' + escapeHtml(item.brand) + '</td><td>' + escapeHtml(item.unit) + '</td><td>' + availableQty(item).toFixed(2) + '</td><td><input type="number" class="so-table__filter-input" style="width:88px;text-align:right;" value="' + item.ordered_qty + '" min="0.01" max="' + availableQty(item) + '" step="0.01" data-item-qty="' + idx + '"><div class="so-item-stock-error" ' + (issue ? '' : 'hidden') + ' data-item-error="' + idx + '">' + escapeHtml(issue) + '</div></td><td>' + fmt(item.selling_price) + '</td><td data-item-total="' + idx + '">' + fmt(lineTotal(item)) + '</td><td><button type="button" class="so-icon-btn so-icon-btn--danger" data-item-remove="' + idx + '"><svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15" stroke="currentColor" stroke-width="2"/></svg></button></td></tr>';
+            var dUnit = discountedUnitPrice(item);
+            var dLine = discountedLineTotal(item);
+            html += '<tr class="' + (issue ? 'so-item-row--invalid' : '') + '">' +
+                '<td>' + escapeHtml(item.item_no) + '</td>' +
+                '<td>' + escapeHtml(item.product) + '</td>' +
+                '<td>' + escapeHtml(item.brand) + '</td>' +
+                '<td>' + escapeHtml(item.unit) + '</td>' +
+                '<td>' + availableQty(item).toFixed(2) + '</td>' +
+                '<td><input type="number" class="so-table__filter-input" style="width:72px;text-align:right;" value="' + item.ordered_qty + '" min="0.01" max="' + availableQty(item) + '" step="0.01" data-item-qty="' + idx + '"><div class="so-item-stock-error" ' + (issue ? '' : 'hidden') + ' data-item-error="' + idx + '">' + escapeHtml(issue) + '</div></td>' +
+                '<td style="text-align:center;font-weight:600;">' + (discountPercent > 0 ? discountPercent.toFixed(2) + '%' : '0.00%') + '</td>' +
+                '<td style="text-align:right;">' + fmt(item.selling_price) + '</td>' +
+                '<td style="text-align:right;font-weight:600;">' + fmt(dUnit) + '</td>' +
+                '<td style="text-align:right;font-weight:600;color:#166534;" data-item-discounted-total="' + idx + '">' + fmt(dLine) + '</td>' +
+                '<td><button type="button" class="so-icon-btn so-icon-btn--danger" data-item-remove="' + idx + '"><svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15" stroke="currentColor" stroke-width="2"/></svg></button></td></tr>';
         });
         html += '</tbody></table></div>';
         itemsContainer.innerHTML = html;
@@ -336,8 +381,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 var val = parseFloat(this.value);
                 if (isNaN(val)) val = 0;
                 selectedItems[idx].ordered_qty = val;
-                var totalCell = itemsContainer.querySelector('[data-item-total="' + idx + '"]');
-                if (totalCell) totalCell.innerHTML = fmt(lineTotal(selectedItems[idx]));
+                var totalCell = itemsContainer.querySelector('[data-item-discounted-total="' + idx + '"]');
+                if (totalCell) totalCell.innerHTML = fmt(discountedLineTotal(selectedItems[idx]));
                 var error = stockIssue(selectedItems[idx]);
                 var row = this.closest('tr');
                 var errorEl = itemsContainer.querySelector('[data-item-error="' + idx + '"]');
@@ -395,8 +440,9 @@ document.addEventListener('DOMContentLoaded', function () {
             var item = selectedItems[i];
             if (item) {
                 var unitPrice = isVat ? vatExclusiveUnit(item) : Number(item.selling_price || 0);
-                var itemTotal = isVat ? vatExclusiveLine(item) : lineTotal(item);
+                var itemTotal = isVat ? vatExclusiveDiscountedLine(item) : discountedLineTotal(item);
                 displayTotal += itemTotal;
+                var displayDiscUnitPrice = isVat ? vatExclusiveDiscountedUnit(item) : discountedUnitPrice(item);
                 rowsHtml += '<tr><td class="center">' + (i + 1) + '</td><td class="desc">' + escapeHtml(((item.product || '') + ' ' + (item.brand || '')).trim().toUpperCase()) + '</td><td class="center">' + Number(item.ordered_qty || 0).toFixed(0) + '</td><td class="center">' + escapeHtml(item.unit || '') + '</td><td class="right">' + unitPrice.toFixed(2) + '</td><td class="right">' + itemTotal.toFixed(2) + '</td></tr>';
             } else {
                 rowsHtml += '<tr><td class="center"></td><td></td><td></td><td></td><td></td><td></td></tr>';
@@ -531,20 +577,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Delete modal
-    deleteClose.forEach(function (el) { el.addEventListener('click', function () { closeModal(deleteModal); }); });
-    deleteProceed.addEventListener('click', function () {
-        var id = deleteModal.dataset.soDeleteOrderId;
-        var url = storeUrl.replace(/\/+$/, '') + '/' + id;
-        fetch(url, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken, 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                closeModal(deleteModal);
-                if (data.message) { showNotice(data.message, data.message.includes('Successfully') ? 'success' : 'error'); }
-                if (data.message && (data.message.includes('Successfully'))) { setTimeout(reloadPage, 1000); }
-            })
-            .catch(function () { showNotice('An error occurred.', 'error'); closeModal(deleteModal); });
-    });
+    // (Delete event listener removed)
 
     // Price filter
     priceFilter.addEventListener('change', function () {
@@ -613,66 +646,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(function () { showNotice('An error occurred while creating the sales order.', 'error'); });
     }
 
-    // ========== VIEW ORDER ==========
-    root.addEventListener('click', function (e) {
-        var viewBtn = e.target.closest('[data-so-view]');
-        if (!viewBtn) return;
-        var row = viewBtn.closest('[data-so-row]');
-        if (!row) return;
-        var id = row.dataset.soId;
-        var url = showUrlTemplate.replace('__SALES_ORDER_ID__', id);
-        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                var order = data.sales_order;
-                resetModal();
-                previewOrder = order;
-                soNoDisplay.value = order.so_no;
-                soDateDisplay.value = order.order_date || '';
-                modalKicker.textContent = 'View Sales Order';
-                modalTitle.textContent = 'Sales Order #' + order.so_no;
-                selectedCustomer = { id: order.customer_id, customer_no: order.customer_no_snapshot, customer_name: order.customer_name_snapshot, tin: order.tin_snapshot, price_reference: order.price_reference_snapshot, price_reference_label: order.price_reference_snapshot === 'yellow' ? 'Yellow' : 'Green', discount_percent: 0, sales_agent: order.sales_agent_snapshot, salesman_name: order.salesman_snapshot, address: order.address_snapshot, terms: order.terms_snapshot };
-                updateCustomerDisplay();
-                salesChannel.value = order.sales_channel;
-                selectedItems = (order.items || []).map(function (item) { return { product_id: item.product_id, item_no: item.item_no_snapshot, product: item.product_name_snapshot, brand: item.brand_snapshot, unit: item.unit_snapshot, qty: item.available_qty || item.ordered_qty, available_qty: item.available_qty || item.ordered_qty, selling_price: item.selling_price_snapshot, ordered_qty: item.ordered_qty, discount_percent: item.discount_percent_snapshot }; });
-                selectedProductIds = new Set(selectedItems.map(function (i) { return i.product_id; }));
-                buildReview();
-                goToStep(3);
-                stepBack.hidden = true;
-                stepNext.hidden = true;
-                if (modalFooterClose) modalFooterClose.textContent = 'Close';
-                openModal(modal);
-            });
-    });
-
-    // ========== EDIT ORDER ==========
-    root.addEventListener('click', function (e) {
-        var editBtn = e.target.closest('[data-so-edit]');
-        if (!editBtn) return;
-        var row = editBtn.closest('[data-so-row]');
-        if (!row) return;
-        var id = row.dataset.soId;
-        var url = showUrlTemplate.replace('__SALES_ORDER_ID__', id);
-        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                var order = data.sales_order;
-                resetModal();
-                editingId = id;
-                soNoDisplay.value = order.so_no;
-                soDateDisplay.value = order.order_date || '';
-                modalKicker.textContent = 'Edit Sales Order';
-                modalTitle.textContent = 'Edit #' + order.so_no;
-                selectedCustomer = { id: order.customer_id, customer_no: order.customer_no_snapshot, customer_name: order.customer_name_snapshot, tin: order.tin_snapshot, price_reference: order.price_reference_snapshot, price_reference_label: order.price_reference_snapshot === 'yellow' ? 'Yellow' : 'Green', discount_percent: 0, sales_agent: order.sales_agent_snapshot, salesman_name: order.salesman_snapshot, address: order.address_snapshot, terms: order.terms_snapshot };
-                updateCustomerDisplay();
-                salesChannel.value = order.sales_channel;
-                selectedItems = (order.items || []).map(function (item) { return { product_id: item.product_id, item_no: item.item_no_snapshot, product: item.product_name_snapshot, brand: item.brand_snapshot, unit: item.unit_snapshot, qty: item.available_qty || item.ordered_qty, available_qty: item.available_qty || item.ordered_qty, selling_price: item.selling_price_snapshot, ordered_qty: item.ordered_qty, discount_percent: item.discount_percent_snapshot }; });
-                selectedProductIds = new Set(selectedItems.map(function (i) { return i.product_id; }));
-                renderSelectedItems();
-                goToStep(1);
-                openModal(modal);
-            });
-    });
+    // (View and Edit event listeners removed — main table no longer shows these actions)
 
     // ========== UPDATE ORDER ==========
     function updateOrder() {
@@ -707,32 +681,7 @@ document.addEventListener('DOMContentLoaded', function () {
         openModal(printModal);
     });
 
-    // ========== DELETE/CANCEL ==========
-    root.addEventListener('click', function (e) {
-        var deleteBtn = e.target.closest('[data-so-delete]');
-        if (!deleteBtn) return;
-        var row = deleteBtn.closest('[data-so-row]');
-        if (!row) return;
-        var status = row.querySelector('.so-badge')?.textContent || 'Pending';
-        var isCancelled = status === 'Cancelled' || status === 'Cancel';
-        deleteModal.dataset.soDeleteOrderId = row.dataset.soId;
-        deleteTitle.textContent = isCancelled ? 'Delete Sales Order?' : (status === 'Confirmed' ? 'Cancel Sales Order?' : 'Delete Sales Order?');
-        deleteMessage.textContent = isCancelled ? 'This will permanently delete the cancelled sales order.' : (status === 'Confirmed' ? 'This will cancel the order and restore stock quantities.' : 'This action cannot be undone.');
-        deleteProceed.textContent = isCancelled ? 'Delete' : (status === 'Confirmed' ? 'Cancel Order' : 'Delete');
-        openModal(deleteModal);
-    });
+    // (Delete/Cancel event listener removed)
 
-    // ========== DROPDOWN ==========
-    root.addEventListener('click', function (e) {
-        var toggle = e.target.closest('[data-so-dropdown-toggle]');
-        if (toggle) {
-            e.stopPropagation();
-            var menu = toggle.closest('[data-so-dropdown]').querySelector('[data-so-dropdown-menu]');
-            var isOpen = !menu.hidden;
-            root.querySelectorAll('[data-so-dropdown-menu]').forEach(function (m) { m.hidden = true; });
-            menu.hidden = isOpen;
-        } else {
-            root.querySelectorAll('[data-so-dropdown-menu]').forEach(function (m) { m.hidden = true; });
-        }
-    });
+    // (Dropdown toggle event listener removed)
 });
