@@ -5,8 +5,10 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\InventoryAdjustmentController;
 use App\Http\Controllers\Admin\MasterListController;
+use App\Http\Controllers\Admin\PriceReferenceConfigurationController;
 use App\Http\Controllers\Admin\ProductConfigurationController;
 use App\Http\Controllers\Admin\SalesAgentController;
+use App\Http\Controllers\Admin\SalesListingController;
 use App\Http\Controllers\Admin\SalesOrderController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\AuthController;
@@ -50,6 +52,8 @@ Route::middleware(['auth', 'admin'])
         Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
         Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
         Route::patch('/customers/bulk-update', [CustomerController::class, 'bulkUpdate'])->name('customers.bulk-update');
+        Route::get('/customers/price-reference-configuration', [PriceReferenceConfigurationController::class, 'show'])->name('customers.price-reference-configuration.show');
+        Route::patch('/customers/price-reference-configuration', [PriceReferenceConfigurationController::class, 'update'])->name('customers.price-reference-configuration.update');
         Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
         Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
         Route::get('/inventory/adjustment', [InventoryAdjustmentController::class, 'index'])->name('inventory.adjustment');
@@ -66,6 +70,14 @@ Route::middleware(['auth', 'admin'])
             Route::get('/{sales_order}/print-sales-order', [SalesOrderController::class, 'printSalesOrder'])->name('print-sales-order')->whereNumber('sales_order');
             Route::get('/{sales_order}/print-sales-invoice', [SalesOrderController::class, 'printSalesInvoice'])->name('print-sales-invoice')->whereNumber('sales_order');
             Route::get('/{sales_order}/print-both', [SalesOrderController::class, 'printBoth'])->name('print-both')->whereNumber('sales_order');
+        });
+
+        Route::prefix('sales-listing')->name('sales-listing.')->group(function () {
+            Route::get('/', [SalesListingController::class, 'index'])->name('index');
+            Route::get('/data', [SalesListingController::class, 'data'])->name('data');
+            Route::get('/metrics', [SalesListingController::class, 'metrics'])->name('metrics');
+            Route::get('/{salesListing}', [SalesListingController::class, 'show'])->name('show')->whereNumber('salesListing');
+            Route::patch('/{salesListing}', [SalesListingController::class, 'update'])->name('update')->whereNumber('salesListing');
         });
 
         Route::get('/system-security/user-management', [UserManagementController::class, 'index'])->name('system-security.user-management');

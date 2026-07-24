@@ -8,10 +8,28 @@ document.addEventListener('DOMContentLoaded', function () {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
     const rows = Array.from(root.querySelectorAll('[data-customer-row]'));
     const salesAgents = JSON.parse(root.dataset.salesAgents || '[]');
+    const priceReferencesData = JSON.parse(root.dataset.customerPriceReferences || '{}');
+    const configUrl = root.dataset.customerPriceReferenceConfigUrl || '';
+    const configUpdateUrl = root.dataset.customerPriceReferenceUpdateUrl || '';
     const storeUrl = root.dataset.customerStoreUrl || '';
     const detailsUrlTemplate = root.dataset.customerDetailsUrlTemplate || '';
     const updateUrl = root.dataset.customerUpdateUrl || '';
     const destroyUrlTemplate = root.dataset.customerDestroyUrlTemplate || '';
+    const configButton = root.querySelector('[data-customer-config-button]');
+    const configModal = root.querySelector('[data-customer-config-modal]');
+    const configForm = root.querySelector('[data-customer-config-form]');
+    const configCloseButtons = root.querySelectorAll('[data-customer-config-close]');
+    const configYellowInput = root.querySelector('[data-customer-config-yellow]');
+    const configGreenInput = root.querySelector('[data-customer-config-green]');
+    const configConfirmModal = root.querySelector('[data-customer-config-confirm-modal]');
+    const configConfirmCloseButtons = root.querySelectorAll('[data-customer-config-confirm-close]');
+    const configConfirmSaveButton = root.querySelector('[data-customer-config-confirm-save]');
+    const configChangesContainer = root.querySelector('[data-customer-config-changes]');
+    const priceReferenceHints = {
+        yellow: root.querySelector('[data-price-reference-hint="yellow"]'),
+        green: root.querySelector('[data-price-reference-hint="green"]'),
+    };
+    const discountPercentInput = root.querySelector('[data-customer-discount-percent]');
     const addButton = root.querySelector('[data-customer-add-button]');
     const viewButton = root.querySelector('[data-customer-view-button]');
     const deleteButton = root.querySelector('[data-customer-delete-button]');
@@ -45,7 +63,42 @@ document.addEventListener('DOMContentLoaded', function () {
     let customerPendingDelete = null;
     let isDeletingCustomer = false;
     let searchTimer = null;
-    let greenDiscountDraft = addForm?.querySelector('input[name="discount_percent"]')?.value || '0';
+    let priceReferenceConfig = {
+        yellow: { id: null, discount_percent: 0 },
+        green: { id: null, discount_percent: 0 },
+        loaded: false,
+        saving: false,
+    };
+
+    function initPriceReferenceConfig() {
+        const yellowData = priceReferencesData?.YELLOW;
+        const greenData = priceReferencesData?.GREEN;
+        if (yellowData) {
+            priceReferenceConfig.yellow.id = yellowData.id;
+            priceReferenceConfig.yellow.discount_percent = Number(yellowData.default_discount_percent ?? 0);
+        }
+        if (greenData) {
+            priceReferenceConfig.green.id = greenData.id;
+            priceReferenceConfig.green.discount_percent = Number(greenData.default_discount_percent ?? 0);
+        }
+        priceReferenceConfig.loaded = true;
+        renderPriceReferenceHints();
+    }
+
+    function renderPriceReferenceHints() {
+        if (priceReferenceHints.yellow) {
+            priceReferenceHints.yellow.textContent = 'Configured discount: ' + priceReferenceConfig.yellow.discount_percent.toFixed(2) + '%';
+        }
+        if (priceReferenceHints.green) {
+            priceReferenceHints.green.textContent = 'Configured discount: ' + priceReferenceConfig.green.discount_percent.toFixed(2) + '%';
+        }
+    }
+
+    function getConfiguredDiscount(reference) {
+        const key = reference === 'yellow' ? 'yellow' : 'green';
+        return priceReferenceConfig[key]?.discount_percent ?? 0;
+    }
+
     let lastSelectedPriceReference = null;
 
     document.documentElement.dataset.adminCustomerListReady = 'true';
@@ -276,32 +329,12 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        if (selected === 'yellow') {
-            if (lastSelectedPriceReference !== 'yellow') {
-                greenDiscountDraft = discount.value || '';
-            }
-
-            discount.value = '20';
-            discount.readOnly = true;
-            if (hint) {
-                hint.textContent = 'Auto 20% for Yellow Customer';
-            }
-            lastSelectedPriceReference = 'yellow';
-            updateCustomerCreateButtonState();
-            return;
-        }
-
-        if (lastSelectedPriceReference === 'yellow') {
-            discount.value = greenDiscountDraft || '';
-        } else {
-            greenDiscountDraft = discount.value || '';
-        }
-
-        discount.readOnly = false;
+        discount.value = String(getConfiguredDiscount(selected).toFixed(2));
+        discount.readOnly = true;
         if (hint) {
-            hint.textContent = 'Editable for Green Customer';
+            hint.textContent = 'Discount is controlled by Price Reference Configuration';
         }
-        lastSelectedPriceReference = 'green';
+        lastSelectedPriceReference = selected;
         updateCustomerCreateButtonState();
     }
 
@@ -554,17 +587,18 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             let nextValue = editor.value;
-            if (field === 'price_reference' && nextValue === 'yellow') {
+            if (field === 'price_reference') {
+                const discountValue = getConfiguredDiscount(nextValue);
                 const discountCell = row.querySelector('[data-field="discount_percent"]');
                 if (discountCell) {
                     pendingEdits.set(editKey(row.dataset.customerId, 'discount_percent'), {
                         id: row.dataset.customerId,
                         field: 'discount_percent',
-                        value: 20,
+                        value: discountValue,
                     });
-                    discountCell.dataset.pendingValue = '20';
+                    discountCell.dataset.pendingValue = String(discountValue);
                     discountCell.classList.add('is-changed');
-                    setCellDisplay(discountCell, 'discount_percent', 20);
+                    setCellDisplay(discountCell, 'discount_percent', discountValue);
                 }
             }
 
@@ -903,11 +937,7 @@ document.addEventListener('DOMContentLoaded', function () {
             radio.addEventListener('change', handlePriceReferenceChange);
         });
 
-        addForm.querySelector('input[name="discount_percent"]')?.addEventListener('input', function (event) {
-            if (getSelectedPriceReference() === 'green') {
-                greenDiscountDraft = event.target.value || '';
-            }
-        });
+
     }
 
     closeAddButtons.forEach(function (button) {
@@ -979,6 +1009,189 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    function openPriceReferenceConfigurationModal() {
+        if (!configModal) {
+            return;
+        }
+
+        hideNotice();
+        configYellowInput.value = priceReferenceConfig.yellow.discount_percent.toFixed(2);
+        configGreenInput.value = priceReferenceConfig.green.discount_percent.toFixed(2);
+        openModal(configModal);
+    }
+
+    async function loadPriceReferenceConfiguration() {
+        if (!configUrl) {
+            return;
+        }
+
+        try {
+            const payload = await fetchJson(configUrl, { method: 'GET' });
+            if (payload.yellow) {
+                priceReferenceConfig.yellow.id = payload.yellow.id;
+                priceReferenceConfig.yellow.discount_percent = Number(payload.yellow.discount_percent ?? 0);
+            }
+            if (payload.green) {
+                priceReferenceConfig.green.id = payload.green.id;
+                priceReferenceConfig.green.discount_percent = Number(payload.green.discount_percent ?? 0);
+            }
+            priceReferenceConfig.loaded = true;
+            renderPriceReferenceHints();
+            updateDiscountState(addForm);
+        } catch (error) {
+            return;
+        }
+    }
+
+    function renderPriceReferenceConfigurationChanges(yellowOld, yellowNew, greenOld, greenNew) {
+        if (!configChangesContainer) {
+            return;
+        }
+
+        configChangesContainer.innerHTML = '';
+        configChangesContainer.className = 'customer-config-changes';
+
+        const yellowLabel = document.createElement('dt');
+        yellowLabel.textContent = 'Yellow Discount';
+        const yellowValue = document.createElement('dd');
+        yellowValue.textContent = yellowOld.toFixed(2) + '% \u2192 ' + yellowNew.toFixed(2) + '%';
+
+        const greenLabel = document.createElement('dt');
+        greenLabel.textContent = 'Green Discount';
+        const greenValue = document.createElement('dd');
+        greenValue.textContent = greenOld.toFixed(2) + '% \u2192 ' + greenNew.toFixed(2) + '%';
+
+        configChangesContainer.append(yellowLabel, yellowValue, greenLabel, greenValue);
+    }
+
+    let pendingConfigData = null;
+
+    function handleConfigFormSubmit(event) {
+        event.preventDefault();
+
+        if (!configForm || !configConfirmModal) {
+            return;
+        }
+
+        const yellowNew = Number(configYellowInput?.value ?? 0);
+        const greenNew = Number(configGreenInput?.value ?? 0);
+
+        if (isNaN(yellowNew) || isNaN(greenNew)) {
+            showNotice('Please enter valid discount values.');
+            return;
+        }
+
+        if (yellowNew < 0 || yellowNew > 100 || greenNew < 0 || greenNew > 100) {
+            showNotice('Discounts must be between 0 and 100.');
+            return;
+        }
+
+        pendingConfigData = {
+            yellow_discount: yellowNew,
+            green_discount: greenNew,
+        };
+
+        renderPriceReferenceConfigurationChanges(
+            priceReferenceConfig.yellow.discount_percent,
+            yellowNew,
+            priceReferenceConfig.green.discount_percent,
+            greenNew,
+        );
+
+        closeModal(configModal);
+        openModal(configConfirmModal);
+    }
+
+    async function confirmSavePriceReferenceConfiguration() {
+        if (!pendingConfigData || !configConfirmSaveButton || priceReferenceConfig.saving) {
+            return;
+        }
+
+        priceReferenceConfig.saving = true;
+        configConfirmSaveButton.disabled = true;
+        hideNotice();
+
+        try {
+            const payload = await fetchJson(configUpdateUrl, {
+                method: 'PATCH',
+                body: JSON.stringify(pendingConfigData),
+            });
+
+            const changes = payload.changes || {};
+            const yellowChanges = changes.yellow || {};
+            const greenChanges = changes.green || {};
+
+            priceReferenceConfig.yellow.discount_percent = yellowChanges.new_discount ?? pendingConfigData.yellow_discount;
+            priceReferenceConfig.green.discount_percent = greenChanges.new_discount ?? pendingConfigData.green_discount;
+            renderPriceReferenceHints();
+            updateDiscountState(addForm);
+
+            closeModal(configConfirmModal);
+            pendingConfigData = null;
+
+            const details = [];
+            if (yellowChanges) {
+                details.push({ label: 'Yellow Discount', value: yellowChanges.new_discount?.toFixed(2) + '%' });
+                if (yellowChanges.customers_updated > 0) {
+                    details.push({ label: 'Yellow Customers Updated', value: String(yellowChanges.customers_updated) });
+                }
+            }
+            if (greenChanges) {
+                details.push({ label: 'Green Discount', value: greenChanges.new_discount?.toFixed(2) + '%' });
+                if (greenChanges.customers_updated > 0) {
+                    details.push({ label: 'Green Customers Updated', value: String(greenChanges.customers_updated) });
+                }
+            }
+
+            showCustomerSuccessModal({
+                title: 'Price Reference Configuration Updated Successfully',
+                message: 'The price reference discounts have been updated successfully.',
+                details: details,
+            });
+        } catch (error) {
+            showNotice(error.message);
+            openModal(configModal);
+        } finally {
+            priceReferenceConfig.saving = false;
+            configConfirmSaveButton.disabled = false;
+        }
+    }
+
+    if (configButton) {
+        configButton.addEventListener('click', openPriceReferenceConfigurationModal);
+    }
+
+    if (configForm) {
+        configForm.addEventListener('submit', handleConfigFormSubmit);
+    }
+
+    configCloseButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            closeModal(configModal);
+        });
+    });
+
+    configConfirmCloseButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            closeModal(configConfirmModal);
+            pendingConfigData = null;
+        });
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && configModal && !configModal.hidden) {
+            configCloseButtons[0]?.click();
+        }
+        if (event.key === 'Escape' && configConfirmModal && !configConfirmModal.hidden) {
+            configConfirmCloseButtons[0]?.click();
+        }
+    });
+
+    if (configConfirmSaveButton) {
+        configConfirmSaveButton.addEventListener('click', confirmSavePriceReferenceConfiguration);
+    }
+
+    initPriceReferenceConfig();
     updateDiscountState(addForm);
     updateCustomerCreateButtonState();
     updateCustomerActionButtons();

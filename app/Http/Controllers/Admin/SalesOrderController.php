@@ -77,12 +77,13 @@ class SalesOrderController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.ordered_qty' => ['required', 'numeric', 'gt:0'],
-            'items.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $user = $request->user();
 
         $customer = Customer::with(['priceReference', 'salesAgent', 'customerAddress'])->findOrFail($request->customer_id);
+
+        $discountPercent = (float) ($customer->priceReference?->default_discount_percent ?? 0);
 
         $customerData = [
             'customer_id' => $customer->id,
@@ -97,8 +98,16 @@ class SalesOrderController extends Controller
             'sales_channel' => $request->sales_channel,
         ];
 
+        $items = collect($request->items)->map(function ($item) use ($discountPercent) {
+            return [
+                'product_id' => $item['product_id'],
+                'ordered_qty' => $item['ordered_qty'],
+                'discount_percent' => $discountPercent,
+            ];
+        })->toArray();
+
         try {
-            $order = $this->salesOrderService->createSalesOrder($customerData, $user, $request->items);
+            $order = $this->salesOrderService->createSalesOrder($customerData, $user, $items);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
         }
@@ -128,7 +137,6 @@ class SalesOrderController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.ordered_qty' => ['required', 'numeric', 'gt:0'],
-            'items.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $user = $request->user();
@@ -142,6 +150,8 @@ class SalesOrderController extends Controller
             }
 
             $customer = Customer::with(['priceReference', 'salesAgent', 'customerAddress'])->findOrFail($request->customer_id);
+
+        $discountPercent = (float) ($customer->priceReference?->default_discount_percent ?? 0);
 
             $salesOrder->items()->delete();
 
@@ -171,7 +181,7 @@ class SalesOrderController extends Controller
                 $itemRows[] = $this->salesOrderService->buildItemData(
                     $product,
                     (float) $item['ordered_qty'],
-                    (float) ($item['discount_percent'] ?? 0)
+                    $discountPercent
                 );
 
                 $product->decrement('qty', (float) $item['ordered_qty']);
@@ -308,7 +318,7 @@ class SalesOrderController extends Controller
                 'tin' => $c->tin,
                 'price_reference' => strtolower((string) ($c->priceReference?->code ?? 'green')),
                 'price_reference_label' => $c->priceReference?->name ?? 'Green',
-                'discount_percent' => (float) $c->discount_percent,
+                'discount_percent' => (float) ($c->priceReference?->default_discount_percent ?? 0),
                 'sales_agent' => $c->salesAgent?->name,
                 'salesman_name' => $c->salesman_name,
                 'address' => $c->customerAddress?->formatted_address,
@@ -369,6 +379,11 @@ class SalesOrderController extends Controller
     public function printSalesOrder(SalesOrder $salesOrder)
     {
         $salesOrder->load(['items.product', 'customer', 'preparedBy']);
+
+        if ($salesOrder->items->isEmpty()) {
+            return view('admin.sales-order.print-error');
+        }
+
         return view('admin.sales-order.print-sales-order', [
             'order' => $salesOrder,
             'companyName' => config('app.name', 'CONTROL A Trading and Services'),
@@ -377,7 +392,12 @@ class SalesOrderController extends Controller
 
     public function printSalesInvoice(SalesOrder $salesOrder)
     {
-        $salesOrder->load(['items', 'customer', 'preparedBy']);
+        $salesOrder->load(['items.product', 'customer', 'preparedBy']);
+
+        if ($salesOrder->items->isEmpty()) {
+            return view('admin.sales-order.print-error');
+        }
+
         return view('admin.sales-order.print-sales-invoice', [
             'order' => $salesOrder,
             'companyName' => config('app.name', 'CONTROL A Trading and Services'),
@@ -386,7 +406,12 @@ class SalesOrderController extends Controller
 
     public function printBoth(SalesOrder $salesOrder)
     {
-        $salesOrder->load(['items', 'customer', 'preparedBy']);
+        $salesOrder->load(['items.product', 'customer', 'preparedBy']);
+
+        if ($salesOrder->items->isEmpty()) {
+            return view('admin.sales-order.print-error');
+        }
+
         return view('admin.sales-order.print-both', [
             'order' => $salesOrder,
             'companyName' => config('app.name', 'CONTROL A Trading and Services'),
@@ -436,7 +461,7 @@ class SalesOrderController extends Controller
                 'tin' => $c->tin,
                 'price_reference' => strtolower((string) ($c->priceReference?->code ?? 'green')),
                 'price_reference_label' => $c->priceReference?->name ?? 'Green',
-                'discount_percent' => (float) $c->discount_percent,
+                'discount_percent' => (float) ($c->priceReference?->default_discount_percent ?? 0),
                 'sales_agent' => $c->salesAgent?->name,
                 'salesman_name' => $c->salesman_name,
                 'address' => $c->customerAddress?->formatted_address,
@@ -497,6 +522,8 @@ class SalesOrderController extends Controller
                 'ordered_qty' => (float) $item->ordered_qty,
                 'selling_price_snapshot' => (float) $item->selling_price_snapshot,
                 'discount_percent_snapshot' => (float) $item->discount_percent_snapshot,
+                'discount_amount_snapshot' => (float) $item->discount_amount_snapshot,
+                'discounted_unit_price_snapshot' => (float) $item->discounted_unit_price_snapshot,
                 'unit_price_without_vat' => (float) $item->unit_price_without_vat,
                 'line_total_without_vat' => (float) $item->line_total_without_vat,
                 'vat_amount' => (float) $item->vat_amount,

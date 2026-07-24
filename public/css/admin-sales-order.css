@@ -234,7 +234,6 @@
 .so-table td:last-child,
 .so-table th:last-child {
     padding-right: 16px;
-    min-width: 260px;
 }
 
 .so-table__filter-input {

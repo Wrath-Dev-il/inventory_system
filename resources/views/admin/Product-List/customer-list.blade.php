@@ -33,6 +33,9 @@
                 data-customer-details-url-template="{{ $customerDetailsUrlTemplate }}"
                 data-customer-update-url="{{ $customerUpdateUrl }}"
                 data-customer-destroy-url-template="{{ $customerDestroyUrlTemplate }}"
+                data-customer-price-reference-config-url="{{ $customerPriceReferenceConfigUrl }}"
+                data-customer-price-reference-update-url="{{ $customerPriceReferenceUpdateUrl }}"
+                data-customer-price-references='@json($priceReferences)'
                 data-sales-agents='@json($salesAgents)'
             >
                 <div class="admin-customers__header">
@@ -106,6 +109,13 @@
                             </form>
 
                             <div class="admin-customers__toolbar-actions">
+                                <button type="button" class="customer-action-button customer-action-button--primary" data-customer-config-button>
+                                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" stroke-width="1.8"/>
+                                    </svg>
+                                    <span>Configure Price Reference</span>
+                                </button>
                                 <button type="button" class="customer-action-button customer-action-button--primary" data-customer-add-button>
                                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                         <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -226,13 +236,15 @@
                                 <label class="customer-radio-card customer-radio-card--green">
                                     <input type="radio" name="price_reference" value="green" checked data-price-reference-radio>
                                     <span>Green</span>
+                                    <small class="customer-config-hint" data-price-reference-hint="green"></small>
                                 </label>
                                 <label class="customer-radio-card customer-radio-card--yellow">
                                     <input type="radio" name="price_reference" value="yellow" data-price-reference-radio>
                                     <span>Yellow</span>
+                                    <small class="customer-config-hint" data-price-reference-hint="yellow"></small>
                                 </label>
                             </fieldset>
-                            <label class="customer-field"><span>%Disc <em data-discount-hint></em></span><input type="number" name="discount_percent" min="0" max="100" step="0.01" value="0"></label>
+                            <label class="customer-field"><span>%Disc <em data-discount-hint></em></span><input type="number" name="discount_percent" min="0" max="100" step="0.01" value="0" readonly data-customer-discount-percent></label>
                             <label class="customer-field">
                                 <span>Salesman</span>
                                 <select name="sales_agent_id">
@@ -336,6 +348,64 @@
                         <footer class="customer-delete-modal__footer">
                             <button type="button" class="customer-action-button customer-action-button--secondary" data-customer-delete-close>Cancel</button>
                             <button type="button" class="customer-action-button customer-action-button--danger" data-customer-delete-confirm><span data-customer-delete-confirm-text>Delete Customer</span></button>
+                        </footer>
+                    </article>
+                </div>
+
+                <div class="customer-modal" data-customer-config-modal hidden>
+                    <div class="customer-modal__backdrop" data-customer-config-close></div>
+                    <form class="customer-modal__dialog" data-customer-config-form>
+                        <header class="customer-modal__header">
+                            <div>
+                                <p>Price Reference Configuration</p>
+                                <h2>Price Reference Configuration</h2>
+                            </div>
+                            <button type="button" class="customer-icon-button" data-customer-config-close aria-label="Close configuration">
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="customer-modal__body customer-modal__body--grid">
+                            <label class="customer-field customer-config-field">
+                                <span>Yellow Discount <b class="customer-config-indicator customer-config-indicator--yellow"></b></span>
+                                <input type="number" name="yellow_discount" min="0" max="100" step="0.01" required data-customer-config-yellow>
+                            </label>
+                            <label class="customer-field customer-config-field">
+                                <span>Green Discount <b class="customer-config-indicator customer-config-indicator--green"></b></span>
+                                <input type="number" name="green_discount" min="0" max="100" step="0.01" required data-customer-config-green>
+                            </label>
+                        </div>
+                        <footer class="customer-modal__footer">
+                            <button type="button" class="customer-action-button customer-action-button--secondary" data-customer-config-close>Cancel</button>
+                            <button type="submit" class="customer-action-button customer-action-button--primary">Save Configuration</button>
+                        </footer>
+                    </form>
+                </div>
+
+                <div class="customer-delete-modal" data-customer-config-confirm-modal hidden>
+                    <div class="customer-delete-modal__backdrop" data-customer-config-confirm-close></div>
+                    <article class="customer-delete-modal__dialog" role="dialog" aria-modal="true">
+                        <header class="customer-delete-modal__header">
+                            <span class="customer-delete-modal__icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <path d="m10.29 3.86-8.4 14A2 2 0 0 0 3.6 21h16.8a2 2 0 0 0 1.71-3.14l-8.4-14a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                            <button type="button" class="customer-icon-button" data-customer-config-confirm-close aria-label="Close confirmation">
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="customer-delete-modal__body">
+                            <h2>Confirm Price Reference Configuration</h2>
+                            <div data-customer-config-changes></div>
+                        </div>
+                        <footer class="customer-delete-modal__footer" style="justify-content:center;">
+                            <button type="button" class="customer-action-button customer-action-button--secondary" data-customer-config-confirm-close>Cancel</button>
+                            <button type="button" class="customer-action-button customer-action-button--primary" data-customer-config-confirm-save>Confirm Save</button>
                         </footer>
                     </article>
                 </div>

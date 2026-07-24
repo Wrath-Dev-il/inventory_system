@@ -13,6 +13,7 @@ class Customer extends Model
         'customer_name',
         'tin',
         'price_reference_id',
+        'price_reference',
         'discount_percent',
         'sales_agent_id',
         'salesman_name',

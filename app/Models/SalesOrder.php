@@ -62,4 +62,9 @@ class SalesOrder extends Model
     {
         return $this->hasMany(SalesOrderStatusLog::class);
     }
+
+    public function salesListing(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(SalesListing::class);
+    }
 }

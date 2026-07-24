@@ -51,6 +51,10 @@ class CustomerController extends Controller
         $stats = $tableExists ? $this->customerStats() : $this->emptyStats();
         $salesAgents = $tableExists ? $this->salesAgentOptions() : collect();
 
+        $priceReferences = $tableExists
+            ? PriceReference::query()->whereIn('code', ['YELLOW', 'GREEN'])->get()->keyBy('code')
+            : collect();
+
         return view('admin.Product-List.customer-list', [
             'title' => 'Customer List',
             'subtitle' => 'Manage customer records, pricing references and sales assignments.',
@@ -58,6 +62,7 @@ class CustomerController extends Controller
             'customers' => $customers,
             'stats' => $stats,
             'salesAgents' => $salesAgents,
+            'priceReferences' => $priceReferences,
             'searches' => $request->query('search', []),
             'globalSearch' => $request->query('q', ''),
             'nextCustomerNo' => $tableExists ? $this->nextCustomerNo() : 'CTRLA-000001',
@@ -65,6 +70,8 @@ class CustomerController extends Controller
             'customerDetailsUrlTemplate' => route('admin.customers.show', ['customer' => '__CUSTOMER_ID__']),
             'customerUpdateUrl' => route('admin.customers.bulk-update'),
             'customerDestroyUrlTemplate' => route('admin.customers.destroy', ['customer' => '__CUSTOMER_ID__']),
+            'customerPriceReferenceConfigUrl' => route('admin.customers.price-reference-configuration.show'),
+            'customerPriceReferenceUpdateUrl' => route('admin.customers.price-reference-configuration.update'),
             'companyName' => config('app.name', 'CONTROL A Trading and Services'),
         ]);
     }
@@ -270,16 +277,14 @@ class CustomerController extends Controller
 
     private function customerAttributes(array $payload, PriceReference $priceReference): array
     {
-        $referenceCode = strtolower((string) $priceReference->code);
-        $discount = $referenceCode === 'yellow'
-            ? 20.0
-            : ($this->numericValue($payload['discount_percent'] ?? null) ?? 0.0);
+        $discount = (float) ($priceReference->default_discount_percent ?? 0);
         $salesAgentId = $this->nullableInteger($payload['sales_agent_id'] ?? null);
 
         return [
             'customer_name' => trim((string) $payload['customer_name']),
             'tin' => $this->nullableString($payload['tin'] ?? null),
             'price_reference_id' => $priceReference->id,
+            'price_reference' => strtolower($priceReference->code),
             'discount_percent' => $discount,
             'sales_agent_id' => $salesAgentId,
             'salesman_name' => $this->salesmanNameForAgent($salesAgentId)
@@ -304,7 +309,10 @@ class CustomerController extends Controller
         }
 
         if ($field === 'price_reference') {
-            $customer->price_reference_id = $this->priceReferenceForCode($value)->id;
+            $priceReference = $this->priceReferenceForCode($value);
+            $customer->price_reference_id = $priceReference->id;
+            $customer->price_reference = strtolower($priceReference->code);
+            $customer->discount_percent = (float) ($priceReference->default_discount_percent ?? 0);
             return;
         }
 
@@ -323,11 +331,11 @@ class CustomerController extends Controller
 
     private function enforceCustomerRules(Customer $customer): void
     {
-        $code = $customer->priceReference?->code
-            ?? PriceReference::query()->whereKey($customer->price_reference_id)->value('code');
+        $priceReference = $customer->priceReference
+            ?? PriceReference::query()->whereKey($customer->price_reference_id)->first();
 
-        if (strtolower((string) $code) === 'yellow') {
-            $customer->discount_percent = 20;
+        if ($priceReference) {
+            $customer->discount_percent = (float) ($priceReference->default_discount_percent ?? 0);
         }
     }
 

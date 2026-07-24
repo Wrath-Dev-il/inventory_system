@@ -337,6 +337,12 @@ body {
     opacity: 1;
 }
 
+.admin-sidebar__group.is-active.is-open .admin-sidebar__submenu {
+    max-height: 360px;
+    margin-top: 6px;
+    opacity: 1;
+}
+
 .admin-sidebar__submenu::before {
     content: "";
     position: absolute;
