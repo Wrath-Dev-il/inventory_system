@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class ProductConfigurationController extends Controller
 {
@@ -38,7 +39,7 @@ class ProductConfigurationController extends Controller
     public function storeSource(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:200', 'unique:item_sources,name'],
+            'name' => ['required', 'string', 'max:200', Rule::unique('item_sources', 'name')->whereNull('deleted_at')],
         ]);
 
         if ($validator->fails()) {
@@ -99,7 +100,7 @@ class ProductConfigurationController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:200', 'unique:item_sources,name,' . $id],
+            'name' => ['required', 'string', 'max:200', Rule::unique('item_sources', 'name')->ignore($id)->whereNull('deleted_at')],
         ]);
 
         if ($validator->fails()) {

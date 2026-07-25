@@ -5,7 +5,7 @@
         || request()->routeIs('admin.product-configuration.*')
         || request()->routeIs('admin.sales-agents.*');
     $inventoryActive = request()->routeIs('admin.inventory.*');
-    $salesActive = request()->routeIs('admin.sales-order.*') || request()->routeIs('admin.sales-listing.*');
+    $salesActive = request()->routeIs('admin.sales-order.*');
     $systemSecurityActive = request()->routeIs('admin.system-security.*');
 @endphp
 
@@ -254,8 +254,7 @@
                     <span>Sales Order</span>
                 </a>
 
-                <a href="{{ route('admin.sales-listing.index') }}"
-                   class="admin-sidebar__sublink {{ request()->routeIs('admin.sales-listing.*') ? 'is-active' : '' }}">
+                  <a href="{{ route('admin.sales-agents.index') }}" class="admin-sidebar__sublink {{ request()->routeIs('admin.sales-agents.*') ? 'is-active' : '' }}">
                     <span class="admin-sidebar__subicon-box">
                         <svg class="admin-sidebar__subicon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
