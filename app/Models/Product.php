@@ -44,4 +44,9 @@ class Product extends Model
     {
         return $this->belongsTo(ItemSource::class);
     }
+
+    public function image()
+    {
+        return $this->hasOne(ProductImage::class);
+    }
 }

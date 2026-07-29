@@ -9,6 +9,8 @@
     $docTitle = $isVat ? 'A-Sales Order' : 'Sales Invoice';
     $transactionType = $isVat ? 'VAT EX' : 'NO VAT';
     $totalLabel = $isVat ? 'VAT EX TOTAL' : 'TOTAL AMOUNT';
+    $unitPriceLabel = $isVat ? 'VAT INC. UNIT PRICE' : 'VAT EX. UNIT PRICE';
+    $totalPriceLabel = $isVat ? 'VAT INC. TOTAL PRICE' : 'VAT EX. TOTAL PRICE';
     $fmt = fn($v) => '₱' . number_format((float) $v, 2);
 @endphp
 
@@ -65,16 +67,22 @@
                 <th style="width: 10mm;">Qty</th>
                 <th style="width: 12mm;">Unit</th>
                 <th style="width: 10mm;">Disc%</th>
-                <th style="width: 22mm;">Unit Price</th>
-                <th style="width: 22mm;">Total Price</th>
+                <th style="width: 22mm;">{{ $unitPriceLabel }}</th>
+                <th style="width: 22mm;">{{ $totalPriceLabel }}</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($items as $index => $item)
                 @php
-                    $unitPrice = (float) ($item->selling_price_snapshot ?? 0);
-                    $lineTotal = (float) ($item->line_total_with_vat ?? 0);
                     $discPct = (float) ($item->discount_percent_snapshot ?? 0);
+                    if ($isVat) {
+                        $unitPrice = (float) ($item->discounted_unit_price_snapshot ?? 0);
+                        $lineTotal = (float) ($item->line_total_with_vat ?? 0);
+                    } else {
+                        $dUnit = (float) ($item->discounted_unit_price_snapshot ?? 0);
+                        $unitPrice = $dUnit > 0 ? round($dUnit / 1.12, 2) : 0;
+                        $lineTotal = (float) ($item->line_total_without_vat ?? 0);
+                    }
                 @endphp
                 <tr>
                     <td class="center">{{ $index + 1 }}</td>
