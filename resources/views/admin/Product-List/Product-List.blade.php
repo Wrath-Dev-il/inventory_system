@@ -33,6 +33,9 @@
                 data-product-store-url="{{ $productStoreUrl }}"
                 data-product-update-url="{{ $productUpdateUrl }}"
                 data-product-destroy-url-template="{{ $productDestroyUrlTemplate }}"
+                data-thumbnail-url-template="{{ $thumbnailUrlTemplate }}"
+                data-picture-show-url-template="{{ $pictureShowUrlTemplate }}"
+                data-picture-update-url-template="{{ $pictureUpdateUrlTemplate }}"
             >
                 <div class="admin-product-list__header">
                     <div>
@@ -124,6 +127,14 @@
                                     @endforeach
                                 </select>
                             </label>
+                            <label class="product-control">
+                                <span>Picture</span>
+                                <select name="picture" data-product-picture-filter>
+                                    @foreach ($pictureFilters as $value => $label)
+                                        <option value="{{ $value }}" @selected(($activePictureFilter ?? 'all') === $value)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
                             <label class="product-control product-control--search">
                                 <span>Search products</span>
                                 <input type="search" name="q" value="{{ $globalSearch }}" placeholder="Search across all columns" data-product-global-search>
@@ -166,6 +177,7 @@
                         <table class="product-table">
                             <thead>
                                 <tr>
+                                    <th>Picture</th>
                                     <th>Item No</th>
                                     <th>Product</th>
                                     <th>Brand</th>
@@ -179,6 +191,7 @@
                                     <th>Price Online</th>
                                 </tr>
                                 <tr class="product-table__filters">
+                                    <th></th>
                                     @foreach (['item_no' => 'Item No', 'product' => 'Product', 'brand' => 'Brand', 'unit' => 'Unit', 'qty' => 'QTY', 'restock_level' => 'Restock Level', 'item_source' => 'Item Source', 'cost_in_yuan' => 'Cost In Yuan', 'cost_in_peso' => 'Cost In Peso', 'selling_price' => 'Selling Price', 'price_online' => 'Price Online'] as $column => $label)
                                         <th>
                                             <input form="product-column-search-form" type="search" name="search[{{ $column }}]" value="{{ $searches[$column] ?? '' }}" aria-label="Search {{ $label }}" placeholder="Search" data-column-search>
@@ -192,8 +205,17 @@
                                         tabindex="0"
                                         data-product-row
                                         data-product-id="{{ $product['id'] }}"
+                                        data-has-image="{{ $product['has_image'] ? 'true' : 'false' }}"
+                                        data-image-version="{{ $product['image_version'] }}"
                                         class="product-row product-row--{{ $product['stock_status']['tone'] }}"
                                     >
+                                        <td class="product-table__picture-cell">
+                                            @if ($product['has_image'])
+                                                <img src="{{ route('admin.products.picture.thumbnail', ['product' => $product['id']]) }}" alt="" class="product-thumbnail" data-product-thumbnail loading="lazy" width="40" height="40">
+                                            @else
+                                                <span class="product-thumbnail product-thumbnail--empty" data-product-no-image>—</span>
+                                            @endif
+                                        </td>
                                         <td data-field="item_no" data-value="{{ $product['item_no'] }}">{{ $product['item_no'] }}</td>
                                         <td data-editable data-field="product" data-value="{{ $product['product'] }}">{{ filled($product['product']) ? $product['product'] : '—' }}</td>
                                         <td data-editable data-field="brand" data-value="{{ $product['brand'] }}">{{ filled($product['brand']) ? $product['brand'] : '—' }}</td>
@@ -208,7 +230,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="11" class="product-table__empty">No products match the current search or filter.</td>
+                                        <td colspan="12" class="product-table__empty">No products match the current search or filter.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -218,6 +240,7 @@
 
                     <form id="product-column-search-form" method="GET" action="{{ route('admin.products.index') }}" hidden>
                         <input type="hidden" name="filter" value="{{ $activeFilter }}">
+                        <input type="hidden" name="picture" value="{{ $activePictureFilter ?? 'all' }}">
                         <input type="hidden" name="q" value="{{ $globalSearch }}">
                     </form>
 
@@ -249,6 +272,16 @@
                         </header>
                         <div class="product-editor-modal__body">
                             <label class="product-field"><span>Item No</span><input type="text" name="item_no" value="{{ $nextItemNo }}" readonly data-next-item-no></label>
+                            <label class="product-field product-field--picture">
+                                <span>Picture (optional)</span>
+                                <span class="product-picture-input">
+                                    <input type="file" name="picture" accept="image/jpeg,image/png,image/webp" data-product-picture-input>
+                                    <button type="button" class="product-action-button product-action-button--secondary product-picture-clear" data-product-picture-clear hidden>Clear</button>
+                                </span>
+                                <span class="product-picture-preview" data-product-picture-preview hidden>
+                                    <img src="" alt="Preview" data-product-preview-img>
+                                </span>
+                            </label>
                             <label class="product-field"><span>Product Name</span><input type="text" name="product" required></label>
                             <label class="product-field"><span>Brand</span><input type="text" name="brand"></label>
                             <label class="product-field"><span>Unit</span><input type="text" name="unit"></label>
@@ -438,6 +471,42 @@
                         </div>
                         <footer class="product-success-modal__footer">
                             <button type="button" class="product-action-button product-action-button--success" data-product-success-close>Done</button>
+                        </footer>
+                    </article>
+                </div>
+
+                <div class="product-picture-modal" data-product-picture-modal hidden>
+                    <div class="product-picture-modal__backdrop" data-product-picture-close></div>
+                    <article class="product-picture-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="product-picture-title">
+                        <header class="product-picture-modal__header">
+                            <h2 id="product-picture-title">Product Picture</h2>
+                            <button type="button" class="product-icon-button" data-product-picture-close aria-label="Close picture">
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </header>
+                        <div class="product-picture-modal__body">
+                            <div class="product-picture-modal__image-wrap">
+                                <img src="" alt="Product picture" data-product-picture-full>
+                            </div>
+                            <div class="product-picture-modal__replace" data-product-picture-replace hidden>
+                                <label class="product-field">
+                                    <span>Replace Picture</span>
+                                    <input type="file" name="picture" accept="image/jpeg,image/png,image/webp" data-product-picture-replace-input>
+                                </label>
+                                <div class="product-picture-modal__replace-preview" data-product-picture-replace-preview hidden>
+                                    <img src="" alt="Replacement preview" data-product-picture-replace-img>
+                                    <div class="product-picture-modal__replace-actions">
+                                        <button type="button" class="product-action-button product-action-button--primary" data-product-picture-replace-confirm>Confirm</button>
+                                        <button type="button" class="product-action-button product-action-button--secondary" data-product-picture-replace-cancel>Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <footer class="product-picture-modal__footer">
+                            <button type="button" class="product-action-button product-action-button--secondary" data-product-picture-edit>Edit Picture</button>
+                            <button type="button" class="product-action-button product-action-button--primary" data-product-picture-close>Close</button>
                         </footer>
                     </article>
                 </div>

@@ -49,6 +49,12 @@ class MasterListController extends Controller
         'price_online',
     ];
 
+    private array $pictureFilters = [
+        'all' => 'All',
+        'with' => 'With Picture',
+        'without' => 'Without Picture',
+    ];
+
     public function products(Request $request)
     {
         $tableExists = Schema::hasTable('products');
@@ -64,6 +70,8 @@ class MasterListController extends Controller
             'stats' => $stats,
             'filters' => $this->filters(),
             'activeFilter' => $request->query('filter', 'all'),
+            'activePictureFilter' => $request->query('picture', 'all'),
+            'pictureFilters' => $this->pictureFilters,
             'searches' => $request->query('search', []),
             'globalSearch' => $request->query('q', ''),
             'nextItemNo' => $tableExists ? $this->nextItemNo() : 'ITEM-000001',
@@ -74,16 +82,27 @@ class MasterListController extends Controller
             'productDestroyUrlTemplate' => route('admin.products.destroy', ['product' => '__PRODUCT_ID__']),
             'companyName' => config('app.name', 'CONTROL A Trading and Services'),
             'itemSources' => $tableExists ? ItemSource::with('currentEquivalency')->orderBy('name')->get(['id', 'name']) : collect(),
+            'thumbnailUrlTemplate' => $tableExists ? route('admin.products.picture.thumbnail', ['product' => '__PRODUCT_ID__']) : '',
+            'pictureShowUrlTemplate' => $tableExists ? route('admin.products.picture.show', ['product' => '__PRODUCT_ID__']) : '',
+            'pictureUpdateUrlTemplate' => $tableExists ? route('admin.products.picture.update', ['product' => '__PRODUCT_ID__']) : '',
         ]);
     }
 
     public function storeProduct(Request $request): JsonResponse|RedirectResponse
     {
         $payload = $this->validatedProductPayload($request);
-        $product = DB::transaction(function () use ($payload) {
+        $product = DB::transaction(function () use ($request, $payload) {
             $product = new Product($this->productAttributes($payload));
             $product->item_no = $this->nextItemNo(true);
             $product->save();
+
+            if ($request->hasFile('picture')) {
+                $file = $request->file('picture');
+                $service = app(\App\Services\ProductImageService::class);
+                $service->validate($file);
+                $product->image()->create($service->process($file));
+            }
+
             return $product->fresh();
         });
 
@@ -175,7 +194,7 @@ class MasterListController extends Controller
 
     private function paginatedProducts(Request $request): LengthAwarePaginator
     {
-        $query = Product::query()->orderByDesc('created_at')->orderByDesc('id');
+        $query = Product::query()->withExists('image')->orderByDesc('created_at')->orderByDesc('id');
         $this->applyProductFilters($query, $request);
 
         $paginator = $query->paginate(50)->withQueryString();
@@ -215,6 +234,12 @@ class MasterListController extends Controller
             'old' => $query->where('created_at', '<', now()->subDays(self::NEW_ITEM_DAYS)),
             'low' => $query->whereColumn('qty', '<=', 'restock_level'),
             'high' => $query->whereRaw('qty > restock_level + GREATEST(1, CEIL(restock_level * 0.25))'),
+            default => null,
+        };
+
+        match ($request->query('picture', 'all')) {
+            'with' => $query->whereHas('image'),
+            'without' => $query->whereDoesntHave('image'),
             default => null,
         };
     }
@@ -425,6 +450,7 @@ class MasterListController extends Controller
 
     private function normalizeProduct(Product $product): array
     {
+        $hasImage = $product->image_exists ?? $product->relationLoaded('image') && $product->image !== null;
         $costPeso = $this->numericValue($product->cost_in_peso);
         $sellingPrice = $this->numericValue($product->selling_price);
         $seaFreight = $this->numericValue($product->sea_freight) ?? 0;
@@ -461,6 +487,8 @@ class MasterListController extends Controller
             'markup' => $markup,
             'markup_unavailable_reason' => $totalCost === 0.0 ? 'zero_total_cost' : null,
             'stock_status' => $this->stockStatus($this->numericValue($product->qty), $this->numericValue($product->restock_level)),
+            'has_image' => $hasImage,
+            'image_version' => $hasImage ? ($product->image?->updated_at?->timestamp ?? $product->image?->created_at?->timestamp ?? 0) : 0,
             'created_at' => $product->created_at?->toDateTimeString(),
         ];
     }

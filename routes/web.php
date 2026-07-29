@@ -5,11 +5,14 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\InventoryAdjustmentController;
 use App\Http\Controllers\Admin\MasterListController;
+use App\Http\Controllers\Admin\PictureController;
 use App\Http\Controllers\Admin\PriceReferenceConfigurationController;
 use App\Http\Controllers\Admin\ProductConfigurationController;
+use App\Http\Controllers\Admin\ProductImageController;
 use App\Http\Controllers\Admin\SalesAgentController;
 use App\Http\Controllers\Admin\SalesListingController;
 use App\Http\Controllers\Admin\SalesOrderController;
+use App\Http\Controllers\Admin\SalesQuotationController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -72,6 +75,16 @@ Route::middleware(['auth', 'admin'])
             Route::get('/{sales_order}/print-both', [SalesOrderController::class, 'printBoth'])->name('print-both')->whereNumber('sales_order');
         });
 
+        Route::prefix('sales-quotation')->name('sales-quotation.')->group(function () {
+            Route::get('/', [SalesQuotationController::class, 'index'])->name('index');
+            Route::get('/data', [SalesQuotationController::class, 'data'])->name('data');
+            Route::post('/', [SalesQuotationController::class, 'store'])->name('store');
+            Route::get('/{salesQuotation}', [SalesQuotationController::class, 'show'])->name('show')->whereNumber('salesQuotation');
+            Route::get('/{salesQuotation}/print', [SalesQuotationController::class, 'print'])->name('print')->whereNumber('salesQuotation');
+            Route::get('/api/customers', [SalesQuotationController::class, 'customers'])->name('customers');
+            Route::get('/api/products', [SalesQuotationController::class, 'products'])->name('products');
+        });
+
         Route::prefix('sales-listing')->name('sales-listing.')->group(function () {
             Route::get('/', [SalesListingController::class, 'index'])->name('index');
             Route::get('/data', [SalesListingController::class, 'data'])->name('data');
@@ -85,6 +98,9 @@ Route::middleware(['auth', 'admin'])
         Route::post('/system-security/user-management', [UserManagementController::class, 'store'])->name('system-security.user-management.store');
         Route::put('/system-security/user-management/{login}', [UserManagementController::class, 'update'])->name('system-security.user-management.update');
         Route::delete('/system-security/user-management/{login}', [UserManagementController::class, 'destroy'])->name('system-security.user-management.destroy');
+        Route::get('/products/{product}/picture/thumbnail', [ProductImageController::class, 'thumbnail'])->name('products.picture.thumbnail');
+        Route::get('/products/{product}/picture/show', [ProductImageController::class, 'show'])->name('products.picture.show');
+        Route::post('/products/{product}/picture/update', [ProductImageController::class, 'update'])->name('products.picture.update');
         Route::get('/product-configuration', [ProductConfigurationController::class, 'index'])->name('product-configuration.index');
         Route::get('/product-configuration/sources', [ProductConfigurationController::class, 'listSources'])->name('product-configuration.sources');
         Route::post('/product-configuration/sources', [ProductConfigurationController::class, 'storeSource'])->name('product-configuration.sources.store');
