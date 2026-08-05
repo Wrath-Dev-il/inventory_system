@@ -422,34 +422,83 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ========== BUILD REVIEW ==========
-    function buildReview() {
+    function getReviewMode() {
         var activeTab = root.querySelector('.so-review-tab.is-active');
-        var isVat = activeTab && activeTab.dataset.soReviewTab === 'with-vat';
-        var docTitle = isVat ? 'A-Sales Order' : 'Sales Invoice';
-        var transactionType = isVat ? 'VAT EX' : 'NO VAT';
-        var unitHeader = isVat ? 'VAT Ex Unit Price' : 'Unit Price';
-        var totalHeader = isVat ? 'VAT Ex Total Price' : 'Total Price';
-        var totalLabel = isVat ? 'VAT EX TOTAL' : 'TOTAL AMOUNT';
-        var preparedBy = previewOrder ? (previewOrder.prepared_by_name_snapshot || '--') : '--';
-        var paymentStatus = previewOrder ? (previewOrder.payment_status || 'Unpaid') : 'Unpaid';
-        var rowCount = Math.max(25, selectedItems.length);
-        var displayTotal = 0;
+        var isWithVat = Boolean(activeTab && activeTab.dataset.soReviewTab === 'with-vat');
+
+        return {
+            isWithVat: isWithVat,
+            docTitle: isWithVat ? 'A-Sales Order' : 'Sales Invoice',
+            transactionType: isWithVat ? 'VAT. INC' : 'NO VAT',
+            unitHeader: isWithVat ? 'VAT INC. UNIT PRICE' : 'VAT EX. UNIT PRICE',
+            totalHeader: isWithVat ? 'VAT INC. TOTAL PRICE' : 'VAT EX. TOTAL PRICE',
+            totalLabel: isWithVat ? 'VAT. INC. TOTAL' : 'TOTAL AMOUNT'
+        };
+    }
+
+    function getReviewItemAmounts(item, isWithVat) {
+        return {
+            unitPrice: isWithVat ? Number(item.selling_price || 0) : vatExclusiveUnit(item),
+            lineTotal: isWithVat ? discountedLineTotal(item) : vatExclusiveDiscountedLine(item)
+        };
+    }
+
+    function getReviewTotals(isWithVat) {
+        var vatInclusiveTotal = selectedItems.reduce(function (sum, item) {
+            return sum + discountedLineTotal(item);
+        }, 0);
+        var vatExclusiveTotal = selectedItems.reduce(function (sum, item) {
+            return sum + vatExclusiveDiscountedLine(item);
+        }, 0);
+
+        return {
+            displayTotal: isWithVat ? vatInclusiveTotal : vatExclusiveTotal,
+            vatAmount: Math.round((vatInclusiveTotal - vatExclusiveTotal) * 100) / 100
+        };
+    }
+
+    function buildReviewRows(mode, rowCount) {
         var rowsHtml = '';
 
         for (var i = 0; i < rowCount; i++) {
             var item = selectedItems[i];
-            if (item) {
-                var unitPrice = isVat ? vatExclusiveUnit(item) : Number(item.selling_price || 0);
-                var itemTotal = isVat ? vatExclusiveDiscountedLine(item) : discountedLineTotal(item);
-                displayTotal += itemTotal;
-                var displayDiscUnitPrice = isVat ? vatExclusiveDiscountedUnit(item) : discountedUnitPrice(item);
-                rowsHtml += '<tr><td class="center">' + (i + 1) + '</td><td class="desc">' + escapeHtml(((item.product || '') + ' ' + (item.brand || '')).trim().toUpperCase()) + '</td><td class="center">' + Number(item.ordered_qty || 0).toFixed(0) + '</td><td class="center">' + escapeHtml(item.unit || '') + '</td><td class="right">' + unitPrice.toFixed(2) + '</td><td class="right">' + itemTotal.toFixed(2) + '</td></tr>';
-            } else {
-                rowsHtml += '<tr><td class="center"></td><td></td><td></td><td></td><td></td><td></td></tr>';
+
+            if (!item) {
+                rowsHtml += '<tr><td class="center"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
+                continue;
             }
+
+            var amounts = getReviewItemAmounts(item, mode.isWithVat);
+            var discount = Number(item.discount_percent ?? discountPercent ?? 0);
+
+            rowsHtml +=
+                '<tr>' +
+                    '<td class="center">' + (i + 1) + '</td>' +
+                    '<td class="desc">' + escapeHtml(((item.product || '') + ' ' + (item.brand || '')).trim().toUpperCase()) + '</td>' +
+                    '<td class="center">' + Number(item.ordered_qty || 0).toFixed(2) + '</td>' +
+                    '<td class="center">' + escapeHtml(item.unit || '') + '</td>' +
+                    '<td class="center">' + (discount > 0 ? discount.toFixed(2) + '%' : '') + '</td>' +
+                    '<td class="right">' + fmt(amounts.unitPrice) + '</td>' +
+                    '<td class="right">' + fmt(amounts.lineTotal) + '</td>' +
+                '</tr>';
         }
 
+        return rowsHtml;
+    }
+
+    function buildReview() {
         if (!printPreview) return;
+
+        var mode = getReviewMode();
+        var totals = getReviewTotals(mode.isWithVat);
+        var preparedBy = previewOrder ? (previewOrder.prepared_by_name_snapshot || '--') : '--';
+        var paymentStatus = previewOrder ? (previewOrder.payment_status || 'Unpaid') : 'Unpaid';
+        var rowCount = Math.max(25, selectedItems.length);
+        var rowsHtml = buildReviewRows(mode, rowCount);
+        var vatAmountHtml = mode.isWithVat
+            ? '<div>VAT AMOUNT</div><div class="amount">' + fmt(totals.vatAmount) + '</div>'
+            : '';
+
         printPreview.innerHTML =
             '<div class="so-preview-page">' +
                 '<section class="so-preview-top">' +
@@ -458,9 +507,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         '<div><h1>CONTROL A TRADING AND SERVICES CORP.</h1>' +
                         '<div class="so-preview-company-lines"><div>601-163-860-00000</div><div>728 GENERAL LUIS ST. CAYBIGA CALOOCAN CITY</div><div>0945 825 8802</div></div></div>' +
                     '</div>' +
-                    '<aside><div class="so-preview-title">' + docTitle + '</div>' +
+                    '<aside><div class="so-preview-title">' + mode.docTitle + '</div>' +
                     '<div class="so-preview-info">' +
-                        '<div class="label">Transaction Type:</div><div class="value">' + transactionType + '</div>' +
+                        '<div class="label">Transaction Type:</div><div class="value">' + mode.transactionType + '</div>' +
                         '<div class="label">S.O. No.:</div><div class="value">' + escapeHtml(soNoDisplay.value || '(Auto)') + '</div>' +
                         '<div class="label">Date:</div><div class="value">' + escapeHtml(soDateDisplay.value || '') + '</div>' +
                         '<div class="label">Prepared by:</div><div class="value">' + escapeHtml(preparedBy) + '</div>' +
@@ -474,9 +523,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     '<div><strong>TIN No:</strong></div><div>' + escapeHtml((selectedCustomer && selectedCustomer.tin) || '') + '</div>' +
                     '<div><strong>Address:</strong></div><div>' + escapeHtml(((selectedCustomer && selectedCustomer.address) || '').toUpperCase()) + '</div>' +
                 '</section>' +
-                '<table class="so-preview-order-table"><thead><tr><th style="width:13mm;">Item No:</th><th>Item Description</th><th style="width:13mm;">Qty</th><th style="width:15mm;">Unit</th><th style="width:23mm;">' + unitHeader + '</th><th style="width:25mm;">' + totalHeader + '</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
+                '<table class="so-preview-order-table"><thead><tr><th style="width:10mm;">Item No:</th><th>Item Description</th><th style="width:10mm;">Qty</th><th style="width:12mm;">Unit</th><th style="width:10mm;">Disc%</th><th style="width:22mm;">' + mode.unitHeader + '</th><th style="width:22mm;">' + mode.totalHeader + '</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
                 '<section class="so-preview-bottom">' +
-                    '<div class="so-preview-total"><div class="green">' + totalLabel + '</div><div class="green amount">' + displayTotal.toFixed(2) + '</div><div>PREPARED BY:</div><div></div><div>CHECKED BY:</div><div></div></div>' +
+                    '<div class="so-preview-total">' +
+                        '<div class="green">' + mode.totalLabel + '</div><div class="green amount">' + fmt(totals.displayTotal) + '</div>' +
+                        vatAmountHtml +
+                        '<div>PREPARED BY:</div><div></div><div>CHECKED BY:</div><div></div>' +
+                    '</div>' +
                 '</section>' +
             '</div>';
     }
