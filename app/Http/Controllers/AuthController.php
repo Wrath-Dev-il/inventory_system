@@ -59,7 +59,7 @@ class AuthController extends Controller
         $request->session()->regenerate();
         RateLimiter::clear($this->throttleKey($request));
 
-        return redirect()->intended(route('admin.dashboard'));
+        return redirect()->route('admin.dashboard');
     }
 
     /**

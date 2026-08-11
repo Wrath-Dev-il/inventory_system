@@ -210,11 +210,18 @@
                                         class="product-row product-row--{{ $product['stock_status']['tone'] }}"
                                     >
                                         <td class="product-table__picture-cell">
-                                            @if ($product['has_image'])
-                                                <img src="{{ route('admin.products.picture.thumbnail', ['product' => $product['id']]) }}" alt="" class="product-thumbnail" data-product-thumbnail loading="lazy" width="40" height="40">
-                                            @else
-                                                <button type="button" class="product-thumbnail product-thumbnail--empty" data-product-no-image aria-label="Add product picture" title="Add product picture">+</button>
-                                            @endif
+                                            <button
+                                                type="button"
+                                                class="product-thumbnail-button"
+                                                data-product-picture-trigger
+                                                aria-label="{{ $product['has_image'] ? 'Enlarge or change product picture' : 'Add product picture' }}"
+                                            >
+                                                @if ($product['has_image'])
+                                                    <img src="{{ route('admin.products.picture.thumbnail', ['product' => $product['id']]) }}?v={{ $product['image_version'] }}" alt="" class="product-thumbnail" data-product-thumbnail loading="lazy" width="40" height="40">
+                                                @else
+                                                    <span class="product-thumbnail product-thumbnail--empty" data-product-no-image aria-hidden="true">+</span>
+                                                @endif
+                                            </button>
                                         </td>
                                         <td data-field="item_no" data-value="{{ $product['item_no'] }}">{{ $product['item_no'] }}</td>
                                         <td data-editable data-field="product" data-value="{{ $product['product'] }}">{{ filled($product['product']) ? $product['product'] : '—' }}</td>
@@ -489,17 +496,22 @@
                         <div class="product-picture-modal__body">
                             <div class="product-picture-modal__image-wrap">
                                 <img src="" alt="Product picture" data-product-picture-full hidden>
-                                <div class="product-picture-modal__empty" data-product-picture-empty hidden>
-                                    <span class="product-picture-modal__empty-icon" aria-hidden="true">+</span>
+                                <div class="product-picture-modal__empty" data-product-picture-empty>
                                     <strong>No product picture yet</strong>
                                     <span>Use Add Picture to select an image from your computer.</span>
                                 </div>
                             </div>
-                            <input type="file" name="picture" accept="image/jpeg,image/png,image/webp" data-product-picture-replace-input hidden>
                             <p class="product-picture-modal__status" data-product-picture-status hidden></p>
+                            <input
+                                type="file"
+                                name="picture"
+                                accept="image/jpeg,image/png,image/webp"
+                                data-product-picture-file
+                                hidden
+                            >
                         </div>
                         <footer class="product-picture-modal__footer">
-                            <button type="button" class="product-action-button product-action-button--secondary" data-product-picture-edit>Change Picture</button>
+                            <button type="button" class="product-action-button product-action-button--secondary" data-product-picture-edit>Add Picture</button>
                             <button type="button" class="product-action-button product-action-button--primary" data-product-picture-close>Close</button>
                         </footer>
                     </article>
@@ -508,7 +520,7 @@
         </main>
     </div>
 
-    <script src="{{ asset('js/admin-layout.js') }}" defer></script>
-    <script src="{{ asset('js/admin-product-list.js') }}" defer></script>
+    <script src="{{ asset('js/admin-layout.js') }}?v={{ filemtime(public_path('js/admin-layout.js')) }}" defer></script>
+    <script src="{{ asset('js/admin-product-list.js') }}?v={{ filemtime(public_path('js/admin-product-list.js')) }}" defer></script>
 </body>
 </html>
