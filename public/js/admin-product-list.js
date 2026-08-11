@@ -1115,15 +1115,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const pictureClear = root.querySelector('[data-product-picture-clear]');
     const pictureModal = root.querySelector('[data-product-picture-modal]');
     const pictureFullImg = root.querySelector('[data-product-picture-full]');
+    const pictureEmptyState = root.querySelector('[data-product-picture-empty]');
+    const pictureStatus = root.querySelector('[data-product-picture-status]');
     const pictureEditButton = root.querySelector('[data-product-picture-edit]');
-    const pictureReplaceSection = root.querySelector('[data-product-picture-replace]');
     const pictureReplaceInput = root.querySelector('[data-product-picture-replace-input]');
-    const pictureReplacePreview = root.querySelector('[data-product-picture-replace-preview]');
-    const pictureReplaceImg = root.querySelector('[data-product-picture-replace-img]');
-    const pictureReplaceConfirm = root.querySelector('[data-product-picture-replace-confirm]');
-    const pictureReplaceCancel = root.querySelector('[data-product-picture-replace-cancel]');
     const pictureCloseButtons = root.querySelectorAll('[data-product-picture-close]');
     let activePictureProductId = null;
+    let activePictureHasImage = false;
+    let activeLocalPictureUrl = null;
 
     function thumbnailUrl(productId) {
         return thumbnailUrlTemplate.replace('__PRODUCT_ID__', encodeURIComponent(productId));
@@ -1137,20 +1136,59 @@ document.addEventListener('DOMContentLoaded', function () {
         return pictureUpdateUrlTemplate.replace('__PRODUCT_ID__', encodeURIComponent(productId));
     }
 
-    function refreshRowPicture(productId) {
+    function cacheBusted(url, version = Date.now()) {
+        if (!url) return '';
+        return url + (url.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(version);
+    }
+
+    function releaseLocalPictureUrl() {
+        if (!activeLocalPictureUrl) return;
+        URL.revokeObjectURL(activeLocalPictureUrl);
+        activeLocalPictureUrl = null;
+    }
+
+    function setPictureStatus(message = '', tone = '') {
+        if (!pictureStatus) return;
+        pictureStatus.textContent = message;
+        pictureStatus.dataset.tone = tone;
+        pictureStatus.hidden = !message;
+    }
+
+    function showPictureImage(src) {
+        if (pictureFullImg) {
+            pictureFullImg.src = src || '';
+            pictureFullImg.hidden = !src;
+        }
+        if (pictureEmptyState) pictureEmptyState.hidden = Boolean(src);
+    }
+
+    function showPictureEmptyState() {
+        if (pictureFullImg) {
+            pictureFullImg.removeAttribute('src');
+            pictureFullImg.hidden = true;
+        }
+        if (pictureEmptyState) pictureEmptyState.hidden = false;
+    }
+
+    function refreshRowPicture(productId, version = Date.now()) {
         const row = root.querySelector(`[data-product-row][data-product-id="${productId}"]`);
         if (!row) return;
-        const version = Date.now();
+
         row.dataset.imageVersion = String(version);
         row.dataset.hasImage = 'true';
-        const cell = row.querySelector('[data-product-thumbnail]');
+
+        const existingImg = row.querySelector('[data-product-thumbnail]');
         const noImg = row.querySelector('[data-product-no-image]');
-        if (cell) {
-            cell.src = thumbnailUrl(productId) + '?v=' + version;
+        const src = cacheBusted(thumbnailUrl(productId), version);
+
+        if (existingImg) {
+            existingImg.src = src;
+            return;
         }
+
         if (noImg) {
             const img = document.createElement('img');
-            img.src = thumbnailUrl(productId) + '?v=' + version;
+            img.src = src;
             img.alt = '';
             img.className = 'product-thumbnail';
             img.dataset.productThumbnail = '';
@@ -1158,6 +1196,103 @@ document.addEventListener('DOMContentLoaded', function () {
             img.width = 40;
             img.height = 40;
             noImg.replaceWith(img);
+        }
+    }
+
+    function openProductPicture(productId, hasImage) {
+        activePictureProductId = String(productId);
+        activePictureHasImage = Boolean(hasImage);
+        releaseLocalPictureUrl();
+        setPictureStatus();
+        if (pictureReplaceInput) pictureReplaceInput.value = '';
+
+        if (pictureEditButton) pictureEditButton.disabled = false;
+
+        if (activePictureHasImage) {
+            showPictureImage(cacheBusted(pictureShowUrl(activePictureProductId)));
+            if (pictureEditButton) pictureEditButton.textContent = 'Change Picture';
+        } else {
+            showPictureEmptyState();
+            if (pictureEditButton) pictureEditButton.textContent = 'Add Picture';
+        }
+
+        openModal(pictureModal);
+    }
+
+    async function uploadActiveProductPicture(file) {
+        if (!file || !activePictureProductId) return;
+
+        const productId = activePictureProductId;
+        const hadImageBeforeUpload = activePictureHasImage;
+        const previousServerImage = hadImageBeforeUpload
+            ? cacheBusted(pictureShowUrl(productId))
+            : '';
+
+        releaseLocalPictureUrl();
+        activeLocalPictureUrl = URL.createObjectURL(file);
+        // Reflect the newly selected photo in the enlarged picture immediately.
+        showPictureImage(activeLocalPictureUrl);
+        setPictureStatus('Uploading picture…', 'working');
+
+        if (pictureEditButton) {
+            pictureEditButton.disabled = true;
+            pictureEditButton.textContent = 'Uploading…';
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('picture', file);
+
+            const response = await fetch(pictureUpdateUrl(productId), {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: formData,
+            });
+
+            const contentType = response.headers.get('content-type') || '';
+            const payload = contentType.includes('application/json')
+                ? await response.json()
+                : {};
+
+            if (!response.ok) {
+                const firstError = payload.errors ? Object.values(payload.errors).flat()[0] : null;
+                throw new Error(firstError || payload.message || `Picture upload failed (HTTP ${response.status}).`);
+            }
+
+            const version = payload.image_version || Date.now();
+            refreshRowPicture(productId, version);
+
+            if (activePictureProductId === productId) {
+                activePictureHasImage = true;
+                // Switch from the instant local preview to the saved server image.
+                releaseLocalPictureUrl();
+                const savedPictureUrl = payload.picture_url || pictureShowUrl(productId);
+                showPictureImage(cacheBusted(savedPictureUrl, version));
+                setPictureStatus(payload.message || 'Picture saved successfully.', 'success');
+            }
+            showNotice(payload.message || 'Picture saved successfully.', 'success');
+        } catch (error) {
+            if (activePictureProductId === productId) {
+                releaseLocalPictureUrl();
+                activePictureHasImage = hadImageBeforeUpload;
+                if (previousServerImage) {
+                    showPictureImage(previousServerImage);
+                } else {
+                    showPictureEmptyState();
+                }
+                setPictureStatus(error.message || 'Unable to upload the picture.', 'error');
+            }
+            showNotice(error.message || 'Unable to upload the picture.', 'error');
+        } finally {
+            if (pictureReplaceInput) pictureReplaceInput.value = '';
+            if (pictureEditButton && activePictureProductId === productId) {
+                pictureEditButton.disabled = false;
+                pictureEditButton.textContent = activePictureHasImage ? 'Change Picture' : 'Add Picture';
+            }
         }
     }
 
@@ -1183,102 +1318,47 @@ document.addEventListener('DOMContentLoaded', function () {
         pictureClear.addEventListener('click', function () {
             if (pictureInput) pictureInput.value = '';
             if (picturePreview) picturePreview.hidden = true;
-            if (pictureClear) pictureClear.hidden = true;
+            pictureClear.hidden = true;
         });
     }
 
     root.addEventListener('click', function (event) {
-        const thumbnail = event.target.closest('[data-product-thumbnail]');
-        if (!thumbnail) return;
-        const row = thumbnail.closest('[data-product-row]');
-        if (!row) return;
-        const productId = row.dataset.productId;
-        if (!productId) return;
+        const pictureTarget = event.target.closest('[data-product-thumbnail], [data-product-no-image]');
+        if (!pictureTarget) return;
+
+        const row = pictureTarget.closest('[data-product-row]');
+        if (!row?.dataset.productId) return;
+
+        event.preventDefault();
         event.stopPropagation();
-        activePictureProductId = productId;
-        if (pictureFullImg) pictureFullImg.src = pictureShowUrl(productId) + '?v=' + Date.now();
-        if (pictureReplaceSection) pictureReplaceSection.hidden = true;
-        if (pictureReplacePreview) pictureReplacePreview.hidden = true;
-        if (pictureReplaceInput) pictureReplaceInput.value = '';
-        if (pictureEditButton) pictureEditButton.textContent = 'Edit Picture';
-        openModal(pictureModal);
+        openProductPicture(row.dataset.productId, row.dataset.hasImage === 'true');
     });
 
     if (pictureEditButton) {
         pictureEditButton.addEventListener('click', function () {
-            if (!pictureReplaceSection) return;
-            const isHidden = pictureReplaceSection.hidden;
-            pictureReplaceSection.hidden = !isHidden;
-            pictureEditButton.textContent = isHidden ? 'Cancel' : 'Edit Picture';
-            if (isHidden && pictureReplacePreview) pictureReplacePreview.hidden = true;
-            if (isHidden && pictureReplaceInput) pictureReplaceInput.value = '';
+            if (!activePictureProductId || pictureEditButton.disabled) return;
+            // This click is a direct user gesture, so browsers will open the native
+            // Windows/macOS file picker without showing a separate Choose File UI.
+            pictureReplaceInput?.click();
         });
     }
 
     if (pictureReplaceInput) {
         pictureReplaceInput.addEventListener('change', function () {
-            const file = this.files[0];
-            if (!file) {
-                if (pictureReplacePreview) pictureReplacePreview.hidden = true;
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                if (pictureReplaceImg) pictureReplaceImg.src = e.target.result;
-                if (pictureReplacePreview) pictureReplacePreview.hidden = false;
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    if (pictureReplaceConfirm) {
-        pictureReplaceConfirm.addEventListener('click', async function () {
-            const file = pictureReplaceInput?.files[0];
-            if (!file || !activePictureProductId) return;
-            pictureReplaceConfirm.disabled = true;
-            pictureReplaceConfirm.textContent = 'Uploading...';
-            try {
-                const formData = new FormData();
-                formData.append('picture', file);
-                const response = await fetch(pictureUpdateUrl(activePictureProductId), {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                    },
-                    body: formData,
-                });
-                const payload = await response.json();
-                if (!response.ok) {
-                    throw new Error(payload.message || 'Upload failed.');
-                }
-                refreshRowPicture(activePictureProductId);
-                if (pictureFullImg) pictureFullImg.src = pictureShowUrl(activePictureProductId) + '?v=' + Date.now();
-                if (pictureReplaceSection) pictureReplaceSection.hidden = true;
-                if (pictureReplacePreview) pictureReplacePreview.hidden = true;
-                if (pictureReplaceInput) pictureReplaceInput.value = '';
-                if (pictureEditButton) pictureEditButton.textContent = 'Edit Picture';
-            } catch (error) {
-                showNotice(error.message, 'error');
-            } finally {
-                pictureReplaceConfirm.disabled = false;
-                pictureReplaceConfirm.textContent = 'Confirm';
-            }
-        });
-    }
-
-    if (pictureReplaceCancel) {
-        pictureReplaceCancel.addEventListener('click', function () {
-            if (pictureReplaceInput) pictureReplaceInput.value = '';
-            if (pictureReplacePreview) pictureReplacePreview.hidden = true;
+            const file = this.files?.[0];
+            if (!file) return;
+            uploadActiveProductPicture(file);
         });
     }
 
     pictureCloseButtons.forEach(function (button) {
         button.addEventListener('click', function () {
+            releaseLocalPictureUrl();
+            setPictureStatus();
             closeModal(pictureModal);
             activePictureProductId = null;
+            activePictureHasImage = false;
+            if (pictureReplaceInput) pictureReplaceInput.value = '';
         });
     });
 
@@ -1308,11 +1388,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         } else {
             if (existingImg) {
-                const span = document.createElement('span');
-                span.className = 'product-thumbnail product-thumbnail--empty';
-                span.dataset.productNoImage = '';
-                span.textContent = '\u2014';
-                existingImg.replaceWith(span);
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'product-thumbnail product-thumbnail--empty';
+                button.dataset.productNoImage = '';
+                button.setAttribute('aria-label', 'Add product picture');
+                button.title = 'Add product picture';
+                button.textContent = '+';
+                existingImg.replaceWith(button);
             }
         }
     }

@@ -6,12 +6,13 @@
     $vatExclusive = (float) $order->vat_exclusive_total;
     $vatAmt = (float) $order->vat_amount;
     $displayTotal = $isVat ? $totalWithVat : $vatExclusive;
-    $docTitle = $isVat ? 'A-Sales Order' : 'Sales Invoice';
+    $docTitle = $isVat ? 'A-Sales Order' : 'Sales Order';
     $transactionType = $isVat ? 'VAT. INC' : 'NO VAT';
     $totalLabel = $isVat ? 'VAT. INC. TOTAL' : 'TOTAL AMOUNT';
     $unitPriceLabel = $isVat ? 'VAT INC. UNIT PRICE' : 'VAT EX. UNIT PRICE';
     $totalPriceLabel = $isVat ? 'VAT INC. TOTAL PRICE' : 'VAT EX. TOTAL PRICE';
     $fmt = fn($v) => '₱' . number_format((float) $v, 2);
+    $printNow = now('Asia/Manila');
 @endphp
 
 <main class="sheet">
@@ -35,11 +36,11 @@
             <div class="info-grid">
                 <div class="label">Transaction Type:</div><div class="value">{{ $transactionType }}</div>
                 <div class="label">S.O. No.:</div><div class="value">{{ $order->so_no }}</div>
-                <div class="label">Date:</div><div class="value">{{ $order->order_date?->format('M d, Y') ?? now()->format('M d, Y') }}</div>
+                <div class="label">Date:</div><div class="value">{{ $order->order_date?->format('M d, Y') ?? $printNow->format('M d, Y') }}</div>
                 <div class="label">Prepared by:</div><div class="value">{{ $order->prepared_by_name_snapshot ?? '--' }}</div>
                 <div class="label">Sales Channel:</div><div class="value">{{ strtoupper($order->sales_channel ?? '--') }}</div>
                 <div class="label">Payment Status:</div><div class="value">{{ strtoupper($order->payment_status ?? '--') }}</div>
-                <div class="label">Time:</div><div class="value">{{ now()->format('h:i:s A') }}</div>
+                <div class="label">Time:</div><div class="value">{{ $printNow->format('h:i:s A') }}</div>
             </div>
         </aside>
     </section>

@@ -31,6 +31,7 @@
                 data-store-url="{{ $salesOrderStoreUrl }}"
                 data-update-url-template="{{ $salesOrderUpdateUrl }}"
                 data-show-url-template="{{ $salesOrderShowUrlTemplate }}"
+                data-destroy-url-template="{{ $salesOrderDestroyUrlTemplate }}"
                 data-print-so-url-template="{{ $salesOrderPrintSalesOrderUrl }}"
                 data-print-si-url-template="{{ $salesOrderPrintSalesInvoiceUrl }}"
                 data-print-both-url-template="{{ $salesOrderPrintBothUrl }}"
@@ -101,9 +102,17 @@
                                     <td><span class="so-badge so-badge--{{ $order->status }}">{{ $order->status }}</span></td>
                                     <td><span class="so-badge so-badge--{{ $order->payment_status }}">{{ $order->payment_status }}</span></td>
                                     <td class="so-actions-cell">
+                                        <button type="button" class="so-action-btn" data-so-edit title="Edit sales order" @disabled($order->payment_status === 'Paid')>
+                                            <svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                                            <span>Edit</span>
+                                        </button>
                                         <button type="button" class="so-action-btn" data-so-print title="Print sales order">
                                             <svg viewBox="0 0 24 24" fill="none"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2"/><path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2"/></svg>
                                             <span>Print</span>
+                                        </button>
+                                        <button type="button" class="so-action-btn so-action-btn--danger" data-so-delete title="Delete sales order" @disabled($order->payment_status === 'Paid')>
+                                            <svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                            <span>Delete</span>
                                         </button>
                                     </td>
                                 </tr>
@@ -196,7 +205,7 @@
                 <div data-so-step-panel="3" hidden>
                     <div class="so-review-tabs">
                         <button type="button" class="so-review-tab is-active" data-so-review-tab="with-vat">WITH VAT — A SALES ORDER</button>
-                        <button type="button" class="so-review-tab" data-so-review-tab="without-vat">WITHOUT VAT — A SALES INVOICE</button>
+                        <button type="button" class="so-review-tab" data-so-review-tab="without-vat">WITHOUT VAT — SALES ORDER</button>
                     </div>
 
                     <div class="so-review-print-stage" data-so-print-preview></div>
@@ -343,6 +352,27 @@
         </div>
     </div>
 
+    {{-- DELETE SALES ORDER MODAL --}}
+    <div class="so-modal" data-so-delete-modal hidden>
+        <div class="so-modal__backdrop" data-so-delete-close></div>
+        <div class="so-modal__dialog so-modal__dialog--small">
+            <div class="so-modal__body">
+                <div class="so-confirm-icon so-confirm-icon--warning">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="m10.29 3.86-8.4 14A2 2 0 0 0 3.6 21h16.8a2 2 0 0 0 1.71-3.14l-8.4-14a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2"/><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2"/></svg>
+                </div>
+                <div class="so-confirm-body">
+                    <h3>Delete Sales Order</h3>
+                    <p>Delete <strong data-so-delete-number>this sales order</strong>? Confirmed orders will be cancelled and their stock will be restored.</p>
+                    <p class="so-delete-error" data-so-delete-error hidden></p>
+                </div>
+            </div>
+            <div class="so-modal__footer" style="justify-content:center;">
+                <button type="button" class="so-btn so-btn--secondary" data-so-delete-close>Cancel</button>
+                <button type="button" class="so-btn so-btn--danger" data-so-delete-confirm>Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+
     {{-- PRINT RECEIPT MODAL --}}
     <div class="so-modal" data-so-print-modal hidden>
         <div class="so-modal__backdrop" data-so-print-close></div>
@@ -359,7 +389,7 @@
                     </button>
                     <button type="button" class="so-print-action-btn" data-so-print-action="sales-invoice">
                         <svg viewBox="0 0 24 24" fill="none"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2"/><path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2"/></svg>
-                        Print Sales Invoice — Without VAT
+                        Print Sales Order — Without VAT
                     </button>
                     <button type="button" class="so-print-action-btn" data-so-print-action="both">
                         <svg viewBox="0 0 24 24" fill="none"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2"/><path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2"/></svg>

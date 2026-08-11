@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const storeUrl = root.dataset.storeUrl || '';
     const updateUrlTemplate = root.dataset.updateUrlTemplate || '';
     const showUrlTemplate = root.dataset.showUrlTemplate || '';
+    const destroyUrlTemplate = root.dataset.destroyUrlTemplate || '';
     const printSoUrlTemplate = root.dataset.printSoUrlTemplate || '';
     const printSiUrlTemplate = root.dataset.printSiUrlTemplate || '';
     const printBothUrlTemplate = root.dataset.printBothUrlTemplate || '';
@@ -19,6 +20,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentStep = 1;
     let previewOrder = null;
     let discountPercent = 0;
+    let deletingId = null;
+    let deletingSoNo = '';
     const VAT_RATE = 0.12;
     const VAT_MULTIPLIER = 1.12;
 
@@ -50,6 +53,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const reviewTabs = root.querySelectorAll('[data-so-review-tab]');
     const printPreview = root.querySelector('[data-so-print-preview]');
     const modalFooterClose = root.querySelector('.so-modal__footer [data-so-modal-close]');
+    const initialSoNo = soNoDisplay.value;
+    const initialSoDate = soDateDisplay.value;
 
     // Customer modal
     const customerModal = root.querySelector('[data-so-customer-modal]');
@@ -86,7 +91,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const printModalClose = root.querySelectorAll('[data-so-print-close]');
     const printActions = root.querySelectorAll('[data-so-print-action]');
 
-    // (Delete modal removed — main table no longer shows delete action)
+    // Delete modal
+    const deleteModal = root.querySelector('[data-so-delete-modal]');
+    const deleteClose = root.querySelectorAll('[data-so-delete-close]');
+    const deleteConfirm = root.querySelector('[data-so-delete-confirm]');
+    const deleteNumber = root.querySelector('[data-so-delete-number]');
+    const deleteError = root.querySelector('[data-so-delete-error]');
 
     // Price filter
     const priceFilter = root.querySelector('[data-so-price-filter]');
@@ -99,7 +109,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function calcWithoutVat(price) { return Math.round((price / VAT_MULTIPLIER) * 100) / 100; }
     function fmt(n) { return '&#8369;' + Number(n).toFixed(2); }
-    function escapeHtml(str) { var div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+    function escapeHtml(str) { var div = document.createElement('div'); div.textContent = str ?? ''; return div.innerHTML; }
+    function manilaTime() {
+        return new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Manila',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        }).format(new Date());
+    }
     function lineTotal(item) { return Math.round(Number(item.ordered_qty || 0) * Number(item.selling_price || 0) * 100) / 100; }
     function vatExclusiveUnit(item) { return calcWithoutVat(Number(item.selling_price || 0)); }
     function vatExclusiveLine(item) { return Math.round(Number(item.ordered_qty || 0) * vatExclusiveUnit(item) * 100) / 100; }
@@ -165,6 +184,8 @@ document.addEventListener('DOMContentLoaded', function () {
         discountPercent = 0;
         currentStep = 1;
         salesChannel.value = '';
+        soNoDisplay.value = initialSoNo;
+        soDateDisplay.value = initialSoDate;
         customerDisplay.innerHTML = '<button type="button" class="so-btn so-btn--secondary" data-so-select-customer><svg viewBox="0 0 24 24" fill="none" width="16" height="16"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 21a8 8 0 0 1 16 0" stroke="currentColor" stroke-width="2"/></svg> Select Customer</button>';
         itemsContainer.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:24px;">No items selected yet. Click "Select Items" to add products.</p>';
         if (printPreview) printPreview.innerHTML = '';
@@ -326,7 +347,11 @@ document.addEventListener('DOMContentLoaded', function () {
             selectedItems = selectedItems.filter(function (i) { return i.product_id !== p.id; });
         } else {
             selectedProductIds.add(p.id);
-            selectedItems.push({ product_id: p.id, item_no: p.item_no, product: p.product, brand: p.brand, unit: p.unit, qty: p.qty, available_qty: p.qty, selling_price: p.selling_price, ordered_qty: 1, discount_percent: discountPercent });
+            var originalItem = previewOrder && Array.isArray(previewOrder.items)
+                ? previewOrder.items.find(function (item) { return Number(item.product_id) === Number(p.id); })
+                : null;
+            var effectiveQty = originalItem ? Number(originalItem.available_qty || p.qty || 0) : Number(p.qty || 0);
+            selectedItems.push({ product_id: p.id, item_no: p.item_no, product: p.product, brand: p.brand, unit: p.unit, qty: effectiveQty, available_qty: effectiveQty, selling_price: p.selling_price, ordered_qty: 1, discount_percent: discountPercent });
         }
         loadProducts(parseInt(productPagination.querySelector('button[style*="font-weight:700"]')?.dataset.pp) || 1, getProductSearchData(), productSearch.value);
         renderSelectedItems();
@@ -428,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         return {
             isWithVat: isWithVat,
-            docTitle: isWithVat ? 'A-Sales Order' : 'Sales Invoice',
+            docTitle: isWithVat ? 'A-Sales Order' : 'Sales Order',
             transactionType: isWithVat ? 'VAT. INC' : 'NO VAT',
             unitHeader: isWithVat ? 'VAT INC. UNIT PRICE' : 'VAT EX. UNIT PRICE',
             totalHeader: isWithVat ? 'VAT INC. TOTAL PRICE' : 'VAT EX. TOTAL PRICE',
@@ -515,7 +540,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         '<div class="label">Prepared by:</div><div class="value">' + escapeHtml(preparedBy) + '</div>' +
                         '<div class="label">Sales Channel:</div><div class="value">' + escapeHtml((salesChannel.value || '--').toUpperCase()) + '</div>' +
                         '<div class="label">Payment Status:</div><div class="value">' + escapeHtml(paymentStatus.toUpperCase()) + '</div>' +
-                        '<div class="label">Time:</div><div class="value">--</div>' +
+                        '<div class="label">Time:</div><div class="value">' + escapeHtml(manilaTime()) + '</div>' +
                     '</div></aside>' +
                 '</section>' +
                 '<section class="so-preview-sold">' +
@@ -630,7 +655,18 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // (Delete event listener removed)
+    deleteClose.forEach(function (el) {
+        el.addEventListener('click', function () {
+            closeModal(deleteModal);
+            deletingId = null;
+            deletingSoNo = '';
+            if (deleteError) { deleteError.hidden = true; deleteError.textContent = ''; }
+        });
+    });
+
+    if (deleteConfirm) {
+        deleteConfirm.addEventListener('click', deleteOrder);
+    }
 
     // Price filter
     priceFilter.addEventListener('change', function () {
@@ -699,7 +735,65 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(function () { showNotice('An error occurred while creating the sales order.', 'error'); });
     }
 
-    // (View and Edit event listeners removed — main table no longer shows these actions)
+    // ========== EDIT ORDER ==========
+    function populateEditOrder(order) {
+        var itemDiscount = order.items && order.items.length ? Number(order.items[0].discount_percent_snapshot || 0) : 0;
+        discountPercent = itemDiscount;
+        previewOrder = order;
+        selectedCustomer = {
+            id: Number(order.customer_id),
+            customer_no: order.customer_no_snapshot || '',
+            customer_name: order.customer_name_snapshot || '',
+            tin: order.tin_snapshot || '',
+            price_reference: order.price_reference_snapshot || 'green',
+            price_reference_label: String(order.price_reference_snapshot || 'green').replace(/^./, function (c) { return c.toUpperCase(); }),
+            discount_percent: itemDiscount,
+            sales_agent: order.sales_agent_snapshot || '',
+            salesman_name: order.salesman_snapshot || '',
+            address: order.address_snapshot || ''
+        };
+        selectedItems = (order.items || []).map(function (item) {
+            return {
+                product_id: Number(item.product_id),
+                item_no: item.item_no_snapshot || '',
+                product: item.product_name_snapshot || '',
+                brand: item.brand_snapshot || '',
+                unit: item.unit_snapshot || '',
+                qty: Number(item.available_qty || 0),
+                available_qty: Number(item.available_qty || 0),
+                selling_price: Number(item.selling_price_snapshot || 0),
+                ordered_qty: Number(item.ordered_qty || 0),
+                discount_percent: Number(item.discount_percent_snapshot || itemDiscount || 0)
+            };
+        });
+        selectedProductIds = new Set(selectedItems.map(function (item) { return item.product_id; }));
+        soNoDisplay.value = order.so_no || '';
+        soDateDisplay.value = order.order_date || initialSoDate;
+        salesChannel.value = order.sales_channel || '';
+        modalKicker.textContent = 'Edit Sales Order';
+        modalTitle.textContent = 'Edit Sales Order';
+        if (modalFooterClose) modalFooterClose.textContent = 'Cancel';
+        updateCustomerDisplay();
+        updatePriceRefDisplay();
+        renderSelectedItems();
+        goToStep(1);
+    }
+
+    function openEditOrder(orderId) {
+        resetModal();
+        editingId = orderId;
+        var url = showUrlTemplate.replace('__SALES_ORDER_ID__', orderId);
+        fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
+            .then(function (res) {
+                if (res.status !== 200 || !res.data.sales_order) {
+                    throw new Error(res.data.message || 'Unable to load the sales order.');
+                }
+                populateEditOrder(res.data.sales_order);
+                openModal(modal);
+            })
+            .catch(function (error) { showNotice(error.message || 'Unable to load the sales order.', 'error'); });
+    }
 
     // ========== UPDATE ORDER ==========
     function updateOrder() {
@@ -724,17 +818,74 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(function () { showNotice('An error occurred.', 'error'); });
     }
 
-    // ========== PRINT ==========
+    // ========== ROW ACTIONS ==========
     root.addEventListener('click', function (e) {
-        var printBtn = e.target.closest('[data-so-print]');
-        if (!printBtn) return;
-        var row = printBtn.closest('[data-so-row]');
+        var row = e.target.closest('[data-so-row]');
         if (!row) return;
-        printModal.dataset.soPrintOrderId = row.dataset.soId;
-        openModal(printModal);
+
+        var editBtn = e.target.closest('[data-so-edit]');
+        if (editBtn && !editBtn.disabled) {
+            openEditOrder(row.dataset.soId);
+            return;
+        }
+
+        var printBtn = e.target.closest('[data-so-print]');
+        if (printBtn) {
+            printModal.dataset.soPrintOrderId = row.dataset.soId;
+            openModal(printModal);
+            return;
+        }
+
+        var deleteBtn = e.target.closest('[data-so-delete]');
+        if (deleteBtn && !deleteBtn.disabled) {
+            deletingId = row.dataset.soId;
+            deletingSoNo = row.querySelector('td strong')?.textContent?.trim() || '';
+            if (deleteNumber) deleteNumber.textContent = deletingSoNo ? 'Sales Order #' + deletingSoNo : 'this sales order';
+            if (deleteError) { deleteError.hidden = true; deleteError.textContent = ''; }
+            openModal(deleteModal);
+        }
     });
 
-    // (Delete/Cancel event listener removed)
+    function deleteOrder() {
+        if (!deletingId || !deleteConfirm) return;
+        var url = destroyUrlTemplate.replace('__SALES_ORDER_ID__', deletingId);
+        deleteConfirm.disabled = true;
+        var originalText = deleteConfirm.textContent;
+        deleteConfirm.textContent = 'Deleting...';
 
-    // (Dropdown toggle event listener removed)
+        fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
+            .then(function (res) {
+                if (res.status < 200 || res.status >= 300) {
+                    throw new Error(res.data.message || 'Unable to delete the sales order.');
+                }
+                closeModal(deleteModal);
+                successTitle.textContent = 'Sales Order Deleted Successfully';
+                successMessage.textContent = deletingSoNo
+                    ? 'Sales Order #' + deletingSoNo + ' has been removed from the active list.'
+                    : 'The sales order has been removed from the active list.';
+                deletingId = null;
+                deletingSoNo = '';
+                openModal(successModal);
+            })
+            .catch(function (error) {
+                if (deleteError) {
+                    deleteError.textContent = error.message || 'Unable to delete the sales order.';
+                    deleteError.hidden = false;
+                } else {
+                    showNotice(error.message || 'Unable to delete the sales order.', 'error');
+                }
+            })
+            .finally(function () {
+                deleteConfirm.disabled = false;
+                deleteConfirm.textContent = originalText;
+            });
+    }
 });

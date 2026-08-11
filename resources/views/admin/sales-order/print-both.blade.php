@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Sales Order & Invoice - {{ $order->so_no }}</title>
+    <title>Sales Orders - With & Without VAT - {{ $order->so_no }}</title>
     @include('admin.sales-order.partials.print-sheet-styles')
 </head>
 <body>

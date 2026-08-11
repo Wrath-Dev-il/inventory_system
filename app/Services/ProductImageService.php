@@ -43,7 +43,11 @@ class ProductImageService
     public function process(UploadedFile $file): array
     {
         $imageData = file_get_contents($file->getPathname());
-        $thumbnailData = $this->generateThumbnail($file->getPathname(), $file->getMimeType());
+        $thumbnailData = $this->generateThumbnail(
+            $file->getPathname(),
+            $file->getMimeType(),
+            $imageData,
+        );
 
         return [
             'image_data' => $imageData,
@@ -55,37 +59,73 @@ class ProductImageService
         ];
     }
 
-    private function generateThumbnail(string $path, string $mime): string
+    private function generateThumbnail(string $path, string $mime, string $originalData): string
     {
-        $src = match ($mime) {
-            'image/jpeg' => @\imagecreatefromjpeg($path),
-            'image/png' => @\imagecreatefrompng($path),
-            'image/webp' => @\imagecreatefromwebp($path),
-            default => throw new \RuntimeException('Unsupported mime type: ' . $mime),
+        $loader = match ($mime) {
+            'image/jpeg' => 'imagecreatefromjpeg',
+            'image/png' => 'imagecreatefrompng',
+            'image/webp' => 'imagecreatefromwebp',
+            default => null,
         };
 
+        $encoder = match ($mime) {
+            'image/jpeg' => 'imagejpeg',
+            'image/png' => 'imagepng',
+            'image/webp' => 'imagewebp',
+            default => null,
+        };
+
+        // If GD or the codec for this image type is unavailable, keep the
+        // validated original bytes. This keeps uploads working without GD and
+        // guarantees thumbnail_data always matches the stored mime_type.
+        if (
+            $loader === null
+            || $encoder === null
+            || ! function_exists($loader)
+            || ! function_exists($encoder)
+            || ! function_exists('imagecreatetruecolor')
+        ) {
+            return $originalData;
+        }
+
+        $src = @$loader($path);
         if ($src === false) {
-            throw new \RuntimeException('Failed to decode image for thumbnail generation.');
+            return $originalData;
         }
 
         $origW = \imagesx($src);
         $origH = \imagesy($src);
+        if ($origW <= 0 || $origH <= 0) {
+            \imagedestroy($src);
+            return $originalData;
+        }
 
-        $ratio = min(self::THUMB_MAX / $origW, self::THUMB_MAX / $origH);
-        $newW = (int) round($origW * $ratio);
-        $newH = (int) round($origH * $ratio);
+        $ratio = min(self::THUMB_MAX / $origW, self::THUMB_MAX / $origH, 1);
+        $newW = max(1, (int) round($origW * $ratio));
+        $newH = max(1, (int) round($origH * $ratio));
 
         if ($ratio >= 1) {
             $thumb = $src;
         } else {
             $thumb = \imagecreatetruecolor($newW, $newH);
-            \imagealphablending($thumb, false);
-            \imagesavealpha($thumb, true);
+
+            if ($mime === 'image/png' || $mime === 'image/webp') {
+                \imagealphablending($thumb, false);
+                \imagesavealpha($thumb, true);
+                $transparent = \imagecolorallocatealpha($thumb, 0, 0, 0, 127);
+                \imagefilledrectangle($thumb, 0, 0, $newW, $newH, $transparent);
+            }
+
             \imagecopyresampled($thumb, $src, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
         }
 
         \ob_start();
-        \imagewebp($thumb, null, 75);
+        $written = match ($mime) {
+            'image/jpeg' => \imagejpeg($thumb, null, 82),
+            'image/png' => \imagepng($thumb, null, 6),
+            'image/webp' => \imagewebp($thumb, null, 80),
+            default => false,
+        };
         $data = \ob_get_clean();
 
         if ($thumb !== $src) {
@@ -93,7 +133,7 @@ class ProductImageService
         }
         \imagedestroy($src);
 
-        return $data !== false ? $data : '';
+        return $written && is_string($data) && $data !== '' ? $data : $originalData;
     }
 
     public function streamData(string $data, string $mimeType)
