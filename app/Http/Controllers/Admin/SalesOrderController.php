@@ -36,7 +36,9 @@ class SalesOrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = SalesOrder::query()->with(['items', 'customer', 'preparedBy']);
+        $query = SalesOrder::query()
+            ->with(['items', 'customer', 'preparedBy'])
+            ->where('status', '!=', 'Cancelled');
 
         $this->applyMainSearch($query, $request);
         $this->applySort($query, $request);
@@ -60,6 +62,7 @@ class SalesOrderController extends Controller
             'salesOrderStoreUrl' => route('admin.sales-order.store'),
             'salesOrderUpdateUrl' => route('admin.sales-order.update', ['sales_order' => '__SALES_ORDER_ID__']),
             'salesOrderShowUrlTemplate' => route('admin.sales-order.show', ['sales_order' => '__SALES_ORDER_ID__']),
+            'salesOrderDestroyUrlTemplate' => route('admin.sales-order.destroy', ['sales_order' => '__SALES_ORDER_ID__']),
             'salesOrderPrintSalesOrderUrl' => route('admin.sales-order.print-sales-order', ['sales_order' => '__SALES_ORDER_ID__']),
             'salesOrderPrintSalesInvoiceUrl' => route('admin.sales-order.print-sales-invoice', ['sales_order' => '__SALES_ORDER_ID__']),
             'salesOrderPrintBothUrl' => route('admin.sales-order.print-both', ['sales_order' => '__SALES_ORDER_ID__']),
@@ -129,6 +132,10 @@ class SalesOrderController extends Controller
     {
         if ($salesOrder->payment_status === 'Paid') {
             return response()->json(['message' => 'Paid orders cannot be edited.'], 409);
+        }
+
+        if ($salesOrder->status === 'Cancelled') {
+            return response()->json(['message' => 'Cancelled orders cannot be edited.'], 409);
         }
 
         $request->validate([

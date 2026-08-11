@@ -213,7 +213,7 @@
                                             @if ($product['has_image'])
                                                 <img src="{{ route('admin.products.picture.thumbnail', ['product' => $product['id']]) }}" alt="" class="product-thumbnail" data-product-thumbnail loading="lazy" width="40" height="40">
                                             @else
-                                                <span class="product-thumbnail product-thumbnail--empty" data-product-no-image>—</span>
+                                                <button type="button" class="product-thumbnail product-thumbnail--empty" data-product-no-image aria-label="Add product picture" title="Add product picture">+</button>
                                             @endif
                                         </td>
                                         <td data-field="item_no" data-value="{{ $product['item_no'] }}">{{ $product['item_no'] }}</td>
@@ -488,24 +488,18 @@
                         </header>
                         <div class="product-picture-modal__body">
                             <div class="product-picture-modal__image-wrap">
-                                <img src="" alt="Product picture" data-product-picture-full>
-                            </div>
-                            <div class="product-picture-modal__replace" data-product-picture-replace hidden>
-                                <label class="product-field">
-                                    <span>Replace Picture</span>
-                                    <input type="file" name="picture" accept="image/jpeg,image/png,image/webp" data-product-picture-replace-input>
-                                </label>
-                                <div class="product-picture-modal__replace-preview" data-product-picture-replace-preview hidden>
-                                    <img src="" alt="Replacement preview" data-product-picture-replace-img>
-                                    <div class="product-picture-modal__replace-actions">
-                                        <button type="button" class="product-action-button product-action-button--primary" data-product-picture-replace-confirm>Confirm</button>
-                                        <button type="button" class="product-action-button product-action-button--secondary" data-product-picture-replace-cancel>Cancel</button>
-                                    </div>
+                                <img src="" alt="Product picture" data-product-picture-full hidden>
+                                <div class="product-picture-modal__empty" data-product-picture-empty hidden>
+                                    <span class="product-picture-modal__empty-icon" aria-hidden="true">+</span>
+                                    <strong>No product picture yet</strong>
+                                    <span>Use Add Picture to select an image from your computer.</span>
                                 </div>
                             </div>
+                            <input type="file" name="picture" accept="image/jpeg,image/png,image/webp" data-product-picture-replace-input hidden>
+                            <p class="product-picture-modal__status" data-product-picture-status hidden></p>
                         </div>
                         <footer class="product-picture-modal__footer">
-                            <button type="button" class="product-action-button product-action-button--secondary" data-product-picture-edit>Edit Picture</button>
+                            <button type="button" class="product-action-button product-action-button--secondary" data-product-picture-edit>Change Picture</button>
                             <button type="button" class="product-action-button product-action-button--primary" data-product-picture-close>Close</button>
                         </footer>
                     </article>

@@ -1295,3 +1295,26 @@
     font-size: 22px;
     color: #071a3d;
 }
+
+.so-action-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    background: #f8fafc;
+}
+
+.so-action-btn:disabled:hover {
+    border-color: #dbe3ee;
+    background: #f8fafc;
+    color: #263348;
+}
+
+.so-delete-error {
+    margin-top: 12px !important;
+    padding: 8px 10px;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    background: #fef2f2;
+    color: #b91c1c !important;
+    font-size: 12px !important;
+    font-weight: 700;
+}
