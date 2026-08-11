@@ -120,6 +120,8 @@ Route::middleware(['auth', 'admin'])
         })->name('system-security.data-sync');
     });
 
-Route::redirect('/dashboard', '/admin/dashboard')
+Route::get('/dashboard', function () {
+    return redirect()->route('admin.dashboard');
+})
     ->middleware(['auth', 'admin'])
     ->name('dashboard');

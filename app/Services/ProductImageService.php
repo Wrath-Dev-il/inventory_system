@@ -20,20 +20,20 @@ class ProductImageService
         }
 
         $mime = $file->getMimeType();
-        if (!in_array($mime, self::ALLOWED_MIMES, true)) {
+        if (! in_array($mime, self::ALLOWED_MIMES, true)) {
             throw ValidationException::withMessages([
                 'picture' => 'The file must be a JPEG, PNG, or WebP image.',
             ]);
         }
 
-        $info = @\getimagesize($file->getPathname());
+        $info = @getimagesize($file->getPathname());
         if ($info === false) {
             throw ValidationException::withMessages([
                 'picture' => 'The file is not a valid or decodable image.',
             ]);
         }
 
-        if (!in_array($info['mime'], self::ALLOWED_MIMES, true)) {
+        if (! in_array($info['mime'], self::ALLOWED_MIMES, true)) {
             throw ValidationException::withMessages([
                 'picture' => 'The file appears to be a corrupted or invalid image.',
             ]);
@@ -43,25 +43,33 @@ class ProductImageService
     public function process(UploadedFile $file): array
     {
         $imageData = file_get_contents($file->getPathname());
-        $thumbnailData = $this->generateThumbnail(
-            $file->getPathname(),
-            $file->getMimeType(),
-            $imageData,
-        );
+        if ($imageData === false) {
+            throw ValidationException::withMessages([
+                'picture' => 'The uploaded image could not be read.',
+            ]);
+        }
+
+        $mime = (string) $file->getMimeType();
 
         return [
             'image_data' => $imageData,
-            'thumbnail_data' => $thumbnailData,
-            'mime_type' => $file->getMimeType(),
+            'thumbnail_data' => $this->generateThumbnail($file->getPathname(), $mime, $imageData),
+            'mime_type' => $mime,
             'original_name' => $file->getClientOriginalName(),
             'file_size' => $file->getSize(),
             'checksum' => hash('sha256', $imageData),
         ];
     }
 
-    private function generateThumbnail(string $path, string $mime, string $originalData): string
+    private function generateThumbnail(string $path, string $mime, string $fallbackData): string
     {
-        $loader = match ($mime) {
+        // Some hosting environments do not have GD (or a specific image codec)
+        // enabled. The original, already validated image is a safe fallback.
+        if (! extension_loaded('gd') || ! function_exists('imagecreatetruecolor')) {
+            return $fallbackData;
+        }
+
+        $decoder = match ($mime) {
             'image/jpeg' => 'imagecreatefromjpeg',
             'image/png' => 'imagecreatefrompng',
             'image/webp' => 'imagecreatefromwebp',
@@ -75,65 +83,55 @@ class ProductImageService
             default => null,
         };
 
-        // If GD or the codec for this image type is unavailable, keep the
-        // validated original bytes. This keeps uploads working without GD and
-        // guarantees thumbnail_data always matches the stored mime_type.
-        if (
-            $loader === null
-            || $encoder === null
-            || ! function_exists($loader)
-            || ! function_exists($encoder)
-            || ! function_exists('imagecreatetruecolor')
-        ) {
-            return $originalData;
+        if ($decoder === null || $encoder === null || ! function_exists($decoder) || ! function_exists($encoder)) {
+            return $fallbackData;
         }
 
-        $src = @$loader($path);
+        $src = @$decoder($path);
         if ($src === false) {
-            return $originalData;
+            return $fallbackData;
         }
 
-        $origW = \imagesx($src);
-        $origH = \imagesy($src);
+        $origW = imagesx($src);
+        $origH = imagesy($src);
+
         if ($origW <= 0 || $origH <= 0) {
-            \imagedestroy($src);
-            return $originalData;
+            imagedestroy($src);
+            return $fallbackData;
         }
 
         $ratio = min(self::THUMB_MAX / $origW, self::THUMB_MAX / $origH, 1);
+        if ($ratio >= 1) {
+            imagedestroy($src);
+            return $fallbackData;
+        }
+
         $newW = max(1, (int) round($origW * $ratio));
         $newH = max(1, (int) round($origH * $ratio));
+        $thumb = imagecreatetruecolor($newW, $newH);
 
-        if ($ratio >= 1) {
-            $thumb = $src;
-        } else {
-            $thumb = \imagecreatetruecolor($newW, $newH);
-
-            if ($mime === 'image/png' || $mime === 'image/webp') {
-                \imagealphablending($thumb, false);
-                \imagesavealpha($thumb, true);
-                $transparent = \imagecolorallocatealpha($thumb, 0, 0, 0, 127);
-                \imagefilledrectangle($thumb, 0, 0, $newW, $newH, $transparent);
-            }
-
-            \imagecopyresampled($thumb, $src, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+        if ($mime === 'image/png' || $mime === 'image/webp') {
+            imagealphablending($thumb, false);
+            imagesavealpha($thumb, true);
+            $transparent = imagecolorallocatealpha($thumb, 0, 0, 0, 127);
+            imagefilledrectangle($thumb, 0, 0, $newW, $newH, $transparent);
         }
 
-        \ob_start();
+        imagecopyresampled($thumb, $src, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+
+        ob_start();
         $written = match ($mime) {
-            'image/jpeg' => \imagejpeg($thumb, null, 82),
-            'image/png' => \imagepng($thumb, null, 6),
-            'image/webp' => \imagewebp($thumb, null, 80),
+            'image/jpeg' => imagejpeg($thumb, null, 82),
+            'image/png' => imagepng($thumb, null, 6),
+            'image/webp' => imagewebp($thumb, null, 78),
             default => false,
         };
-        $data = \ob_get_clean();
+        $data = ob_get_clean();
 
-        if ($thumb !== $src) {
-            \imagedestroy($thumb);
-        }
-        \imagedestroy($src);
+        imagedestroy($thumb);
+        imagedestroy($src);
 
-        return $written && is_string($data) && $data !== '' ? $data : $originalData;
+        return $written && is_string($data) && $data !== '' ? $data : $fallbackData;
     }
 
     public function streamData(string $data, string $mimeType)

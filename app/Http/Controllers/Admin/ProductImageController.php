@@ -49,28 +49,15 @@ class ProductImageController extends Controller
         $this->imageService->validate($file);
 
         $data = $this->imageService->process($file);
-        $hadImage = $product->image()->exists();
 
         DB::transaction(function () use ($product, $data) {
-            // Lock the product while replacing/adding its single picture so two
-            // simultaneous uploads cannot leave the UI in an inconsistent state.
-            Product::query()->whereKey($product->getKey())->lockForUpdate()->firstOrFail();
             $product->image()->delete();
             $product->image()->create($data);
         });
 
-        $product->unsetRelation('image');
-        $product->load('image');
-        $version = $product->image?->updated_at?->timestamp
-            ?? $product->image?->created_at?->timestamp
-            ?? now()->timestamp;
-
         return response()->json([
-            'message' => $hadImage ? 'Picture updated successfully.' : 'Picture added successfully.',
+            'message' => 'Picture updated successfully.',
             'has_image' => true,
-            'image_version' => $version,
-            'thumbnail_url' => route('admin.products.picture.thumbnail', ['product' => $product]),
-            'picture_url' => route('admin.products.picture.show', ['product' => $product]),
         ]);
     }
 }
