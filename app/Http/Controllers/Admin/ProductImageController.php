@@ -18,9 +18,10 @@ class ProductImageController extends Controller
     public function thumbnail(Product $product)
     {
         $product->load('image');
-        if (!$product->image || !$product->image->thumbnail_data) {
+        if (! $product->image || ! $product->image->thumbnail_data || ! $this->imageService->isDisplayable($product->image->thumbnail_data)) {
             abort(404);
         }
+
         return $this->imageService->streamData(
             $product->image->thumbnail_data,
             $product->image->mime_type
@@ -30,11 +31,22 @@ class ProductImageController extends Controller
     public function show(Product $product)
     {
         $product->load('image');
-        if (!$product->image) {
+        if (! $product->image) {
             abort(404);
         }
+
+        $data = $product->image->image_data;
+
+        if (! $this->imageService->isDisplayable($data) && $this->imageService->isDisplayable($product->image->thumbnail_data)) {
+            $data = $product->image->thumbnail_data;
+        }
+
+        if (! $this->imageService->isDisplayable($data)) {
+            abort(404);
+        }
+
         return $this->imageService->streamData(
-            $product->image->image_data,
+            $data,
             $product->image->mime_type
         );
     }

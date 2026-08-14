@@ -7,6 +7,7 @@ use Illuminate\Validation\ValidationException;
 
 class ProductImageService
 {
+    private const ENCODED_PREFIX = 'base64:';
     private const MAX_FILE_SIZE = 5 * 1024 * 1024;
     private const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
     private const THUMB_MAX = 160;
@@ -49,11 +50,12 @@ class ProductImageService
             ]);
         }
 
-        $mime = (string) $file->getMimeType();
+        $mime = $this->detectMime($imageData) ?? (string) $file->getMimeType();
+        $thumbnailData = $this->generateThumbnail($file->getPathname(), $mime, $imageData);
 
         return [
-            'image_data' => $imageData,
-            'thumbnail_data' => $this->generateThumbnail($file->getPathname(), $mime, $imageData),
+            'image_data' => $this->encodeStoredData($imageData),
+            'thumbnail_data' => $this->encodeStoredData($thumbnailData),
             'mime_type' => $mime,
             'original_name' => $file->getClientOriginalName(),
             'file_size' => $file->getSize(),
@@ -136,11 +138,45 @@ class ProductImageService
 
     public function streamData(string $data, string $mimeType)
     {
-        return response($data, 200, [
-            'Content-Type' => $mimeType,
-            'Content-Length' => strlen($data),
+        $decoded = $this->decodeStoredData($data);
+        $detectedMime = $this->detectMime($decoded) ?? $mimeType;
+
+        return response($decoded, 200, [
+            'Content-Type' => $detectedMime,
+            'Content-Length' => strlen($decoded),
             'Cache-Control' => 'private, max-age=31536000, immutable',
             'Pragma' => 'cache',
         ]);
+    }
+
+    public function isDisplayable(string $data): bool
+    {
+        return $this->detectMime($this->decodeStoredData($data)) !== null;
+    }
+
+    public function decodeStoredData(string $data): string
+    {
+        if (str_starts_with($data, self::ENCODED_PREFIX)) {
+            $decoded = base64_decode(substr($data, strlen(self::ENCODED_PREFIX)), true);
+
+            if ($decoded !== false) {
+                return $decoded;
+            }
+        }
+
+        return $data;
+    }
+
+    private function encodeStoredData(string $data): string
+    {
+        return self::ENCODED_PREFIX.base64_encode($data);
+    }
+
+    private function detectMime(string $data): ?string
+    {
+        $info = @getimagesizefromstring($data);
+        $mime = is_array($info) ? ($info['mime'] ?? null) : null;
+
+        return in_array($mime, self::ALLOWED_MIMES, true) ? $mime : null;
     }
 }
